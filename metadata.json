@@ -1,0 +1,10 @@
+{
+  "name": "Cloud Notebook",
+  "description": "A 100% faithful Samsung Notes (PC Edition) Cloud Notebook with dark mode, PDF import, IndexedDB, S-Pen tools, and Google Drive sync.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
