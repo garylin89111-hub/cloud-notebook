@@ -697,12 +697,12 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   // Paper styling class helper
   const paperBgClass =
     note.paperStyle === 'dark'
-      ? 'bg-white dark:bg-[#18181A] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338]'
+      ? 'bg-[#18181A] text-white border-[#333338]' // Always dark paper
       : note.paperStyle === 'lines'
-      ? 'bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] bg-[linear-gradient(to_bottom,#333338_1px,transparent_1px)] bg-[size:100%_28px]'
+      ? 'bg-white dark:bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] bg-[linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#333338_1px,transparent_1px)] bg-[size:100%_28px]'
       : note.paperStyle === 'grid'
-      ? 'bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] bg-[linear-gradient(to_right,#333338_1px,transparent_1px),linear-gradient(to_bottom,#333338_1px,transparent_1px)] bg-[size:20px_20px]'
-      : 'bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] shadow-2xl'; // Dark gray paper sheet with white text
+      ? 'bg-white dark:bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#333338_1px,transparent_1px),linear-gradient(to_bottom,#333338_1px,transparent_1px)] bg-[size:20px_20px]'
+      : 'bg-white dark:bg-[#222225] text-slate-900 dark:text-white border-slate-300 dark:border-[#333338] shadow-2xl'; // Default white paper in light mode, dark gray in dark mode
 
   return (
     <div className="fixed inset-0 z-50 bg-[#F8F9FA] dark:bg-[#0B0B0C] flex flex-col overflow-hidden select-none">
