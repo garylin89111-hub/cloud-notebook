@@ -332,7 +332,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
               }`}
             >
               {/* Card Preview Area */}
-              <div className={`${isSmallGrid ? 'h-36 p-2.5' : 'h-48 p-3.5'} bg-[#171719] border-b border-slate-200 dark:border-[#2C2C30] relative overflow-hidden flex flex-col justify-between`}>
+              <div className={`${isSmallGrid ? 'h-36 p-2.5' : 'h-48 p-3.5'} bg-slate-50 dark:bg-[#171719] border-b border-slate-200 dark:border-[#2C2C30] relative overflow-hidden flex flex-col justify-between`}>
                 {/* Top-Left Group: Selection Circle Checkbox & Folder Badge */}
                 <div className={`absolute ${isSmallGrid ? 'top-1.5 left-1.5' : 'top-2 left-2'} z-30 flex items-center gap-1.5 max-w-[70%]`}>
                   <button
@@ -410,7 +410,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                     </div>
                   ) : hasDrawing ? (
                     /* Drawing Canvas Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-white dark:bg-[#222225] p-1">
                       <img
                         src={note.drawings[0].dataUrl}
                         alt="Drawing Preview"
@@ -419,7 +419,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                     </div>
                   ) : imagePreview ? (
                     /* Inserted Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-white dark:bg-[#222225] p-1">
                       <img
                         src={imagePreview}
                         alt="Image Preview"
