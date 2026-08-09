@@ -218,7 +218,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 bg-white dark:bg-[#18181A] rounded-3xl p-5 shadow-sm border border-slate-300 dark:border-[#333338]">
+    <div className="flex flex-col gap-3">
       {errorMessage && (
         <div className="flex items-center gap-2 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
           <AlertCircle className="w-4 h-4 shrink-0" />

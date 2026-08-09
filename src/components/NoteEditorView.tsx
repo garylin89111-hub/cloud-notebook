@@ -891,16 +891,6 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
                     <PenTool className="w-4 h-4 text-purple-400" />
                     手寫 / S-Pen 畫布
                   </button>
-                  <button
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      voiceRecorderRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-200 dark:bg-[#2C2C30] hover:text-slate-900 dark:text-white"
-                  >
-                    <Mic className="w-4 h-4 text-emerald-400" />
-                    語音備忘錄錄音
-                  </button>
                 </div>
               )}
             </div>
@@ -1109,14 +1099,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
               </div>
             )}
 
-            {/* Voice Recorder Module */}
-            <div ref={voiceRecorderRef} className="pt-4 border-t border-slate-300 dark:border-[#333338]">
-              <VoiceRecorder
-                recordings={note.audioRecordings}
-                onAddRecording={handleAddAudio}
-                onDeleteRecording={handleDeleteAudio}
-              />
-            </div>
+            {/* Removed Voice Recorder from here */}
           </div>
         </div>
       </div>
@@ -1167,6 +1150,13 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
           canRedo={canRedo}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          voiceRecorderNode={
+            <VoiceRecorder
+              recordings={note.audioRecordings}
+              onAddRecording={handleAddAudio}
+              onDeleteRecording={handleDeleteAudio}
+            />
+          }
         />
       )}
 

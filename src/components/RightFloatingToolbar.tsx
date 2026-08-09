@@ -8,6 +8,7 @@ import {
   RotateCcw, 
   RotateCw, 
   BoxSelect,
+  Mic,
 } from 'lucide-react';
 import { SPenToolMode } from '../types';
 
@@ -30,6 +31,7 @@ interface RightFloatingToolbarProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  voiceRecorderNode?: React.ReactNode;
 }
 
 const PRESET_PEN_COLORS = [
@@ -69,10 +71,11 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
   canRedo,
   onUndo,
   onRedo,
+  voiceRecorderNode,
 }) => {
-  const [activePopover, setActivePopover] = useState<'none' | 'pen' | 'highlighter' | 'eraser'>('none');
+  const [activePopover, setActivePopover] = useState<'none' | 'pen' | 'highlighter' | 'eraser' | 'mic'>('none');
 
-  const togglePopover = (target: 'pen' | 'highlighter' | 'eraser') => {
+  const togglePopover = (target: 'pen' | 'highlighter' | 'eraser' | 'mic') => {
     if (activePopover === target) {
       setActivePopover('none');
     } else {
@@ -249,6 +252,22 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
         </div>
       )}
 
+      {/* Voice Recorder Popover */}
+      {activePopover === 'mic' && voiceRecorderNode && (
+        <div className="absolute right-16 bottom-0 md:top-0 bg-white dark:bg-[#1F1F22] border border-slate-300 dark:border-[#333338] rounded-2xl p-4 shadow-2xl w-80 md:w-96 text-slate-900 dark:text-white z-50 animate-in fade-in duration-150">
+          <div className="text-xs font-bold text-slate-500 dark:text-[#A0A0A0] mb-3 flex items-center justify-between">
+            <span>語音備忘錄</span>
+            <button
+              onClick={() => setActivePopover('none')}
+              className="text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          {voiceRecorderNode}
+        </div>
+      )}
+
       {/* Main Floating Tool Container */}
       <div className="bg-white dark:bg-[#1F1F22]/90 backdrop-blur-xl border border-slate-300 dark:border-[#333338] rounded-2xl p-1.5 shadow-2xl flex flex-col items-center gap-1.5 text-slate-900 dark:text-white">
         {/* Keyboard / Text Mode */}
@@ -345,6 +364,22 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
           title="套索選擇 (Lasso)"
         >
           <Lasso className="w-5 h-5" />
+        </button>
+
+        {/* Voice Recorder */}
+        <button
+          type="button"
+          onClick={() => {
+            togglePopover('mic');
+          }}
+          className={`p-3 rounded-xl transition-all relative ${
+            activePopover === 'mic'
+              ? 'bg-[#0381FE] text-white shadow-md'
+              : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
+          }`}
+          title="語音筆記錄音機"
+        >
+          <Mic className="w-5 h-5" />
         </button>
 
         <hr className="w-6 border-slate-300 dark:border-[#333338] my-0.5" />
