@@ -402,44 +402,55 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                 )}
 
                 {/* Main Content Body Preview */}
-                <div className="flex-1 mt-7 mb-1 overflow-hidden flex flex-col justify-center">
+                <div className="flex-1 mt-7 mb-1 overflow-hidden flex flex-col justify-center relative">
                   {note.isLocked ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
                       <Lock className={`${isSmallGrid ? 'w-6 h-6 mb-1' : 'w-8 h-8 mb-2'} text-amber-400/80`} />
                       <span className={`${isSmallGrid ? 'text-[11px]' : 'text-xs'} font-bold text-slate-500 dark:text-[#A0A0A0]`}>已加密鎖定</span>
                     </div>
-                  ) : hasDrawing ? (
-                    /* Drawing Canvas Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
-                      <img
-                        src={note.drawings[0].dataUrl}
-                        alt="Drawing Preview"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  ) : imagePreview ? (
-                    /* Inserted Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
-                      <img
-                        src={imagePreview}
-                        alt="Image Preview"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  ) : hasPdf ? (
-                    /* PDF Document Badge Preview */
-                    <div className="w-full h-full flex flex-col items-center justify-center p-2 bg-rose-950/20 rounded-lg border border-rose-900/40 text-rose-400">
-                      <FileUp className={`${isSmallGrid ? 'w-6 h-6 mb-1' : 'w-8 h-8 mb-1.5'} text-rose-400`} />
-                      <span className="text-xs font-bold truncate max-w-full">
-                        {note.pdfAttachments![0].name}
-                      </span>
-                      <span className="text-[10px] text-rose-300/70 mt-0.5">PDF 文件</span>
-                    </div>
                   ) : (
-                    /* Text Content Preview Sheet */
-                    <div className={`${isSmallGrid ? 'text-[11px] line-clamp-3' : 'text-xs line-clamp-4'} text-slate-500 dark:text-[#A0A0A0] leading-relaxed font-sans select-none whitespace-pre-wrap`}>
-                      {cleanText || '無內容...'}
-                    </div>
+                    <>
+                      {/* 1. Base Text Content Preview (Always render if there is text) */}
+                      {cleanText && (
+                        <div className={`absolute inset-0 p-1 ${isSmallGrid ? 'text-[11px] line-clamp-3' : 'text-xs line-clamp-4'} text-slate-500 dark:text-[#A0A0A0] leading-relaxed font-sans select-none whitespace-pre-wrap z-0`}>
+                          {cleanText}
+                        </div>
+                      )}
+
+                      {/* 2. Visual Overlays (Drawing > Image > PDF) */}
+                      {hasDrawing ? (
+                        <div className={`relative z-20 w-full h-full flex items-center justify-center overflow-hidden rounded-lg ${cleanText ? 'bg-transparent' : 'bg-[#222225]'} p-1 pointer-events-none`}>
+                          <img
+                            src={note.drawings[0].dataUrl}
+                            alt="Drawing Preview"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      ) : imagePreview ? (
+                        <div className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
+                          <img
+                            src={imagePreview}
+                            alt="Image Preview"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      ) : hasPdf ? (
+                        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-2 bg-rose-950/20 rounded-lg border border-rose-900/40 text-rose-400">
+                          <FileUp className={`${isSmallGrid ? 'w-6 h-6 mb-1' : 'w-8 h-8 mb-1.5'} text-rose-400`} />
+                          <span className="text-xs font-bold truncate max-w-full">
+                            {note.pdfAttachments![0].name}
+                          </span>
+                          <span className="text-[10px] text-rose-300/70 mt-0.5">PDF 文件</span>
+                        </div>
+                      ) : (
+                        /* 3. Fallback if completely empty */
+                        !cleanText && (
+                          <div className={`absolute inset-0 p-1 ${isSmallGrid ? 'text-[11px]' : 'text-xs'} text-slate-500 dark:text-[#A0A0A0] select-none`}>
+                            無內容...
+                          </div>
+                        )
+                      )}
+                    </>
                   )}
                 </div>
 
