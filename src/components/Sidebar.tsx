@@ -178,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 } py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isSelected
                     ? 'bg-[#0381FE] text-white shadow-sm'
-                    : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E]'
+                    : 'text-slate-700 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E]'
                 }`}
                 title={item.label}
               >
@@ -273,8 +273,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isExpanded ? 'justify-between pl-3 pr-14' : 'justify-center px-0'
                   } py-2 rounded-xl text-xs font-semibold transition-all ${
                     isSelected
-                      ? 'bg-[#2A2A30] text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E]'
+                      ? 'bg-slate-200 dark:bg-[#2A2A30] text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-700 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E]'
                   }`}
                   style={{
                     borderLeft: isSelected ? `3px solid ${folderColor}` : '3px solid transparent',
@@ -416,7 +416,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={onToggleDarkMode}
           className={`w-full flex items-center ${
             isExpanded ? 'justify-start px-3 gap-3' : 'justify-center px-0'
-          } py-2.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E] transition-colors`}
+          } py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E] transition-colors`}
           title={isDarkMode ? '切換為亮色模式' : '切換為暗色模式'}
         >
           {isDarkMode ? (
@@ -432,7 +432,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={onOpenSettings}
           className={`w-full flex items-center ${
             isExpanded ? 'justify-start px-3 gap-3' : 'justify-center px-0'
-          } py-2.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E] transition-colors`}
+          } py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-[#2A2A2E] transition-colors`}
           title="設定與雲端同步"
         >
           <Settings className="w-4 h-4 text-slate-400 shrink-0" />

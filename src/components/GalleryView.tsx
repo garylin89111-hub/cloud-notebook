@@ -360,7 +360,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                   </button>
 
                   {!isTrashView && (
-                    <span className={`px-2 py-0.5 rounded-md bg-[#F8F9FA] dark:bg-[#0B0B0C]/85 backdrop-blur-md text-slate-200 font-medium ${isSmallGrid ? 'text-[10px]' : 'text-[11px]'} border border-slate-200 dark:border-[#2C2C30] shadow-sm truncate`}>
+                    <span className={`px-2 py-0.5 rounded-md bg-[#F8F9FA] dark:bg-[#0B0B0C]/85 backdrop-blur-md text-slate-700 dark:text-slate-200 font-medium ${isSmallGrid ? 'text-[10px]' : 'text-[11px]'} border border-slate-200 dark:border-[#2C2C30] shadow-sm truncate`}>
                       {note.folder}
                     </span>
                   )}
@@ -368,7 +368,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
                 {/* Attached Badges Pill Floating at top right (ONLY show selected/active ones) */}
                 {(note.isPinned || hasTasks || hasDrawing || hasAudio) && (
-                  <div className={`absolute ${isSmallGrid ? 'top-1.5 right-1.5 px-1.5 py-0.5 gap-1' : 'top-2 right-2 px-2 py-1 gap-1.5'} flex items-center bg-[#F8F9FA] dark:bg-[#0B0B0C]/85 backdrop-blur-md rounded-full border border-slate-200 dark:border-[#2C2C30] z-20`}>
+                  <div className={`absolute ${isSmallGrid ? 'top-1.5 right-1.5 px-1.5 py-0.5 gap-1' : 'top-2 right-2 px-2 py-1 gap-1.5'} flex items-center bg-white dark:bg-[#0B0B0C]/85 backdrop-blur-md rounded-full border border-slate-200 dark:border-[#2C2C30] shadow-sm z-20`}>
                     {/* 📌 藍色圖釘 (有釘選才顯示) */}
                     {note.isPinned && (
                       <button
@@ -410,7 +410,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                     </div>
                   ) : hasDrawing ? (
                     /* Drawing Canvas Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-white dark:bg-[#222225] p-1">
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
                       <img
                         src={note.drawings[0].dataUrl}
                         alt="Drawing Preview"
@@ -419,7 +419,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                     </div>
                   ) : imagePreview ? (
                     /* Inserted Image Preview */
-                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-white dark:bg-[#222225] p-1">
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg bg-[#222225] p-1">
                       <img
                         src={imagePreview}
                         alt="Image Preview"
