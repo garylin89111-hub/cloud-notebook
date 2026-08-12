@@ -109,17 +109,13 @@ export default function App() {
     setSyncSettingsState(newSettings);
     saveSettings(newSettings);
 
-    if (newSettings.mode === 'google_drive' && newSettings.googleClientId && newSettings.googleApiKey) {
-      driveService.initClient(newSettings.googleClientId, newSettings.googleApiKey);
+    if (newSettings.mode === 'google_drive') {
+      driveService.initClient();
     }
   };
 
   // Connect Google OAuth
   const handleConnectGoogle = async () => {
-    if (!settings.googleClientId || !settings.googleApiKey) {
-      alert('請先填寫 Google OAuth Client ID 與 API Key 金鑰。');
-      return;
-    }
 
     try {
       await driveService.initClient();
