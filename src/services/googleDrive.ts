@@ -129,6 +129,7 @@ export class GoogleDriveService {
       resource: {
         name: DRIVE_FOLDER_NAME,
         mimeType: 'application/vnd.google-apps.folder',
+        parents: ['root'],
       },
       fields: 'id',
     });
