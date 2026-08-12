@@ -658,6 +658,7 @@ export default function App() {
               user={user}
               settings={settings}
               onOpenSettings={() => setIsSettingsOpen(true)}
+              onConnectGoogle={handleConnectGoogle}
               onOpenChangelog={() => setIsChangelogOpen(true)}
               noteCounts={noteCounts}
               isDarkMode={isDarkMode}
@@ -696,6 +697,10 @@ export default function App() {
               settings={settings}
               onOpenSettings={() => {
                 setIsSettingsOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              onConnectGoogle={() => {
+                handleConnectGoogle();
                 setIsMobileSidebarOpen(false);
               }}
               onOpenChangelog={() => {

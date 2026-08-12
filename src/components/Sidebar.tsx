@@ -32,6 +32,7 @@ interface SidebarProps {
   user: GoogleUser | null;
   settings: SyncSettings;
   onOpenSettings: () => void;
+  onConnectGoogle: () => void;
   onOpenChangelog: () => void;
   noteCounts: Record<string, number>;
   isDarkMode: boolean;
@@ -51,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
   settings,
   onOpenSettings,
+  onConnectGoogle,
   onOpenChangelog,
   noteCounts,
   isDarkMode,
@@ -136,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sync Mode Badge Indicator */}
         <div className="p-2">
           <div
-            onClick={onOpenSettings}
+            onClick={user ? onOpenSettings : onConnectGoogle}
             className={`cursor-pointer rounded-xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338] p-2 hover:bg-slate-200 dark:bg-[#2E2E33] transition-colors ${
               isExpanded ? 'flex items-center gap-2.5' : 'flex justify-center'
             }`}
