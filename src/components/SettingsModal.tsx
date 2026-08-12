@@ -46,8 +46,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   notes,
   onImportBackup,
 }) => {
-  const [clientId, setClientId] = useState(settings.googleClientId);
-  const [apiKey, setApiKey] = useState(settings.googleApiKey);
   const [autoSync, setAutoSync] = useState(settings.isAutoSync);
   const [mode, setMode] = useState<'demo' | 'google_drive'>(settings.mode);
   const [securityPin, setSecurityPin] = useState(settings.securityPin || '000');
@@ -64,8 +62,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSave = () => {
     onSaveSettings({
-      googleClientId: clientId.trim(),
-      googleApiKey: apiKey.trim(),
+      googleClientId: '',
+      googleApiKey: '',
       isAutoSync: autoSync,
       mode: mode,
       lastSyncedAt: settings.lastSyncedAt,
@@ -93,8 +91,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const updatedPin = newPinInput.trim();
     setSecurityPin(updatedPin);
     onSaveSettings({
-      googleClientId: clientId.trim(),
-      googleApiKey: apiKey.trim(),
+      googleClientId: '',
+      googleApiKey: '',
       isAutoSync: autoSync,
       mode: mode,
       lastSyncedAt: settings.lastSyncedAt,
@@ -220,43 +218,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Key className="w-4 h-4 text-[#0381FE]" />
-                  Google API 金鑰與 OAuth Client ID
+                  Google Drive 帳號連結
                 </h4>
-                <a
-                  href="https://console.cloud.google.com/apis/credentials"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-[#0381FE] hover:underline flex items-center gap-1"
-                >
-                  前往 Google Cloud Console 取得憑證
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-[#A0A0A0] mb-1">
-                  OAuth Client ID
-                </label>
-                <input
-                  type="text"
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  placeholder="例如: 1234567890-xxx.apps.googleusercontent.com"
-                  className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-[#121214] border border-slate-300 dark:border-[#333338] text-slate-900 dark:text-white focus:outline-none focus:border-[#0381FE]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-[#A0A0A0] mb-1">
-                  Google API Key (金鑰)
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-[#121214] border border-slate-300 dark:border-[#333338] text-slate-900 dark:text-white focus:outline-none focus:border-[#0381FE]"
-                />
               </div>
 
               <div className="pt-2 border-t border-slate-300 dark:border-[#333338] flex flex-wrap items-center justify-between gap-3">

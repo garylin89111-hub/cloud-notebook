@@ -1,19 +1,31 @@
 // IndexedDB local storage engine for Samsung Notes PC Web SPA
 import { Note, SyncSettings } from '../types';
 
-const DB_NAME = 'SamsungNotes_PC_DB';
+
 const DB_VERSION = 1;
 const NOTES_STORE = 'notes';
 const SETTINGS_STORE = 'settings';
 
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
+  private currentDbName: string = 'SamsungNotes_PC_DB_local'; // Default local DB
 
-  public async init(): Promise<void> {
-    if (this.db) return;
+  public async init(dbName?: string): Promise<void> {
+    const targetDbName = dbName || this.currentDbName;
+
+    // If the requested DB is already open, do nothing
+    if (this.db && this.currentDbName === targetDbName) return;
+
+    // If switching to a new DB, close the old one first
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+
+    this.currentDbName = targetDbName;
 
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(targetDbName, DB_VERSION);
 
       request.onerror = () => {
         console.warn('IndexedDB failed to open, fallback to localStorage.');

@@ -150,9 +150,10 @@ export const INITIAL_SEED_NOTES: Note[] = [
   }
 ];
 
-export async function getLocalNotes(): Promise<Note[]> {
+export async function getLocalNotes(userEmail?: string): Promise<Note[]> {
   try {
-    await indexedDBService.init();
+    const dbName = userEmail ? `SamsungNotes_PC_DB_${userEmail}` : 'SamsungNotes_PC_DB_local';
+    await indexedDBService.init(dbName);
     const dbNotes = await indexedDBService.getAllNotes();
 
     if (dbNotes && dbNotes.length > 0) {
@@ -187,9 +188,10 @@ export async function getLocalNotes(): Promise<Note[]> {
   }
 }
 
-export async function saveLocalNotes(notes: Note[]): Promise<void> {
+export async function saveLocalNotes(notes: Note[], userEmail?: string): Promise<void> {
   try {
-    await indexedDBService.init();
+    const dbName = userEmail ? `SamsungNotes_PC_DB_${userEmail}` : 'SamsungNotes_PC_DB_local';
+    await indexedDBService.init(dbName);
     await indexedDBService.saveAllNotes(notes);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));

@@ -10,6 +10,9 @@ declare global {
 const DRIVE_FOLDER_NAME = 'CloudNotes_WebData';
 const DATA_FILE_NAME = 'CloudNotes_Data.json';
 
+const GOOGLE_CLIENT_ID = '181448808743-ngni7f8idk0t33s2b5h38sed4ivhfvsu.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyATYfAd2k7Q0Im8XPeWx7X3maGdp0RD7Kc';
+
 export class GoogleDriveService {
   private tokenClient: any = null;
   private accessToken: string | null = null;
@@ -35,7 +38,7 @@ export class GoogleDriveService {
     });
   }
 
-  public async initClient(clientId: string, apiKey: string): Promise<boolean> {
+  public async initClient(): Promise<boolean> {
     const scriptsReady = await this.initializeScripts();
     if (!scriptsReady) {
       console.warn('Google API scripts not available. Operating in Demo Mode.');
@@ -47,7 +50,7 @@ export class GoogleDriveService {
         window.gapi.load('client', async () => {
           try {
             await window.gapi.client.init({
-              apiKey: apiKey,
+              apiKey: GOOGLE_API_KEY,
               discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
             resolve();
@@ -63,7 +66,7 @@ export class GoogleDriveService {
     }
   }
 
-  public requestAccessToken(clientId: string): Promise<string> {
+  public requestAccessToken(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) {
         reject(new Error('Google GIS script not loaded'));
@@ -71,7 +74,7 @@ export class GoogleDriveService {
       }
 
       this.tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
+        client_id: GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         callback: (response: any) => {
           if (response.error) {

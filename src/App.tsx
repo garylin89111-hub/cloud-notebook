@@ -98,11 +98,11 @@ export default function App() {
   // Initial Load from IndexedDB
   useEffect(() => {
     async function loadData() {
-      const loadedNotes = await getLocalNotes();
+      const loadedNotes = await getLocalNotes(user?.email);
       setNotes(loadedNotes);
     }
     loadData();
-  }, []);
+  }, [user?.email]);
 
   // Update Settings helper
   const handleUpdateSettings = (newSettings: SyncSettings) => {
@@ -122,8 +122,8 @@ export default function App() {
     }
 
     try {
-      await driveService.initClient(settings.googleClientId, settings.googleApiKey);
-      const token = await driveService.requestAccessToken(settings.googleClientId);
+      await driveService.initClient();
+      const token = await driveService.requestAccessToken();
       const profile = await driveService.getUserProfile(token);
       if (profile) {
         setUser(profile);
@@ -135,7 +135,7 @@ export default function App() {
     }
   };
 
-  const handleDisconnectGoogle = () => {
+  const handleDisconnectGoogle = async () => {
     setUser(null);
     handleUpdateSettings({ ...settings, mode: 'demo' });
   };
@@ -165,7 +165,7 @@ export default function App() {
       const driveNotes = await driveService.fetchNotesFromDrive();
       if (driveNotes && driveNotes.length > 0) {
         setNotes(driveNotes);
-        saveLocalNotes(driveNotes);
+        saveLocalNotes(driveNotes, user?.email);
       } else {
         await handleSyncToDrive(notes);
       }
@@ -182,7 +182,7 @@ export default function App() {
     setAutoSaveStatus('saving');
 
     const timer = setTimeout(() => {
-      saveLocalNotes(notes);
+      saveLocalNotes(notes, user?.email);
       setAutoSaveStatus('saved');
 
       if (settings.mode === 'google_drive' && settings.isAutoSync && user) {
@@ -227,7 +227,7 @@ export default function App() {
 
     if (hasExpired) {
       setNotes(updatedNotes);
-      saveLocalNotes(updatedNotes);
+      saveLocalNotes(updatedNotes, user?.email);
     }
   }, [notes]);
 
@@ -790,7 +790,7 @@ export default function App() {
         notes={notes}
         onImportBackup={(imported) => {
           setNotes(imported);
-          saveLocalNotes(imported);
+          saveLocalNotes(imported, user?.email);
         }}
       />
 
