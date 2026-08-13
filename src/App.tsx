@@ -123,7 +123,10 @@ export default function App() {
       const profile = await driveService.getUserProfile(token);
       if (profile) {
         setUser(profile);
-        handleSyncFromDrive();
+        const newSettings = { ...settings, mode: 'google_drive' as const };
+        handleUpdateSettings(newSettings);
+        // Pass the updated user and mode explicitly to bypass React state batching delay
+        handleSyncFromDrive(profile, 'google_drive');
       }
     } catch (err) {
       console.error('Google Connect Error:', err);
@@ -137,8 +140,8 @@ export default function App() {
   };
 
   // Sync to Google Drive
-  const handleSyncToDrive = async (latestNotes: Note[]) => {
-    if (!user || settings.mode !== 'google_drive') return;
+  const handleSyncToDrive = async (latestNotes: Note[], overrideUser = user, overrideMode = settings.mode) => {
+    if (!overrideUser || overrideMode !== 'google_drive') return;
     setIsSyncing(true);
     try {
       await driveService.syncNotesToDrive(latestNotes);
@@ -154,16 +157,16 @@ export default function App() {
   };
 
   // Sync from Google Drive
-  const handleSyncFromDrive = async () => {
-    if (!user || settings.mode !== 'google_drive') return;
+  const handleSyncFromDrive = async (overrideUser = user, overrideMode = settings.mode) => {
+    if (!overrideUser || overrideMode !== 'google_drive') return;
     setIsSyncing(true);
     try {
       const driveNotes = await driveService.fetchNotesFromDrive();
       if (driveNotes && driveNotes.length > 0) {
         setNotes(driveNotes);
-        saveLocalNotes(driveNotes, user?.email);
+        saveLocalNotes(driveNotes, overrideUser?.email);
       } else {
-        await handleSyncToDrive(notes);
+        await handleSyncToDrive(notes, overrideUser, overrideMode);
       }
     } catch (err) {
       console.error('Failed to fetch from Drive:', err);

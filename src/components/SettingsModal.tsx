@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Settings, 
@@ -50,6 +50,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [mode, setMode] = useState<'demo' | 'google_drive'>(settings.mode);
   const [securityPin, setSecurityPin] = useState(settings.securityPin || '000');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setMode(settings.mode);
+    setAutoSync(settings.isAutoSync);
+  }, [settings.mode, settings.isAutoSync]);
 
   // Password Change State
   const [oldPinInput, setOldPinInput] = useState('');
@@ -194,7 +199,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setMode('google_drive')}
+                onClick={() => {
+                  setMode('google_drive');
+                  if (!user) onConnectGoogle();
+                }}
                 className={`p-3 rounded-2xl border text-left transition-all ${
                   mode === 'google_drive'
                     ? 'border-[#0381FE] bg-[#0381FE]/20 text-white font-bold'
