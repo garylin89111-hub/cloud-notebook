@@ -109,39 +109,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setConfirmPinInput('');
   };
 
-  const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(notes, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `SamsungNotes_Backup_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileReader = new FileReader();
-    if (e.target.files && e.target.files[0]) {
-      fileReader.readAsText(e.target.files[0], "UTF-8");
-      fileReader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (Array.isArray(parsed)) {
-            onImportBackup(parsed);
-            alert('備份匯入成功！已更新筆記。');
-          } else if (parsed.notes && Array.isArray(parsed.notes)) {
-            onImportBackup(parsed.notes);
-            alert('備份匯入成功！已更新筆記。');
-          } else {
-            alert('無效的 JSON 備份檔案格式');
-          }
-        } catch {
-          alert('解析 JSON 備份檔案失敗');
-        }
-      };
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm select-none animate-in fade-in duration-150">
       <div className="bg-white dark:bg-[#1F1F22] w-full max-w-xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden border border-slate-300 dark:border-[#333338] flex flex-col text-slate-900 dark:text-white">
@@ -306,35 +273,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
             </form>
-          </div>
-
-          {/* Backup & Local Export */}
-          <div className="space-y-3 p-4 rounded-2xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338]">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <Download className="w-4 h-4 text-[#0381FE]" />
-              離線 JSON 備份與匯入
-            </h4>
-
-            <p className="text-xs text-slate-500 dark:text-[#A0A0A0] leading-relaxed">
-              可隨時下載完整的 Cloud Notebook JSON 備份檔案，包含圖片繪圖與語音記錄。
-            </p>
-
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={handleExportJSON}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-[#2C2C30] hover:bg-slate-200 dark:bg-[#38383F] text-slate-900 dark:text-white text-xs font-semibold transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" />
-                匯出 JSON 備份
-              </button>
-
-              <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-[#2C2C30] hover:bg-slate-200 dark:bg-[#38383F] text-slate-900 dark:text-white text-xs font-semibold cursor-pointer transition-colors">
-                <Upload className="w-3.5 h-3.5" />
-                匯入 JSON 備份
-                <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
-              </label>
-            </div>
           </div>
         </div>
 
