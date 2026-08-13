@@ -153,10 +153,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                設定與雲端同步 (Settings)
+                設定 (Settings)
               </h3>
               <p className="text-xs text-slate-500 dark:text-[#A0A0A0]">
-                管理 IndexedDB 本地資料庫與 Google Drive API 雲端同步
+                管理 Google Drive 雲端同步與系統偏好
               </p>
             </div>
           </div>
@@ -171,113 +171,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Form Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-          {/* Sync Mode Toggle Card */}
-          <div className="p-4 rounded-2xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338] space-y-3">
-            <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-[#0381FE]" />
-              儲存與同步模式
-            </label>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setMode('demo')}
-                className={`p-3 rounded-2xl border text-left transition-all ${
-                  mode === 'demo'
-                    ? 'border-[#0381FE] bg-[#0381FE]/20 text-white font-bold'
-                    : 'border-slate-300 dark:border-[#333338] text-slate-500 dark:text-[#A0A0A0] hover:bg-slate-200 dark:bg-[#2C2C30]'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs">
-                  <HardDrive className="w-4 h-4 text-[#0381FE]" />
-                  IndexedDB 本地模式
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-[#A0A0A0] mt-1 font-normal">
-                  預設免設定，資料儲存於瀏覽器本機
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('google_drive');
-                  if (!user) onConnectGoogle();
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all ${
-                  mode === 'google_drive'
-                    ? 'border-[#0381FE] bg-[#0381FE]/20 text-white font-bold'
-                    : 'border-slate-300 dark:border-[#333338] text-slate-500 dark:text-[#A0A0A0] hover:bg-slate-200 dark:bg-[#2C2C30]'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs">
-                  <Cloud className="w-4 h-4 text-[#0381FE]" />
-                  Google Drive 同步
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-[#A0A0A0] mt-1 font-normal">
-                  同步至 CloudNotes_WebData 資料夾
-                </p>
-              </button>
-            </div>
-          </div>
-
           {/* Google Credentials Setup */}
-          {mode === 'google_drive' && (
-            <div className="space-y-4 p-4 rounded-2xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338]">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Key className="w-4 h-4 text-[#0381FE]" />
-                  Google Drive 帳號連結
-                </h4>
-              </div>
+          <div className="space-y-4 p-4 rounded-2xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338]">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Cloud className="w-4 h-4 text-[#0381FE]" />
+                Google Drive 雲端同步
+              </h4>
+            </div>
 
-              <div className="pt-2 border-t border-slate-300 dark:border-[#333338] flex flex-wrap items-center justify-between gap-3">
-                {user ? (
-                  <div className="flex items-center gap-2">
-                    <img src={user.picture} alt="Avatar" className="w-7 h-7 rounded-full border border-[#0381FE]" />
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</div>
-                      <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" /> 已連結 Google Drive
-                      </div>
+            <div className="pt-2 border-t border-slate-300 dark:border-[#333338] flex flex-wrap items-center justify-between gap-3">
+              {user && (
+                <div className="flex items-center gap-2">
+                  <img src={user.picture} alt="Avatar" className="w-7 h-7 rounded-full border border-[#0381FE]" />
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{user.name}</div>
+                    <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> 已連結 Google Drive
                     </div>
                   </div>
-                ) : (
-                  <div className="text-xs text-slate-500 dark:text-[#A0A0A0]">尚未登入 Google</div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  {!user ? (
-                    <button
-                      type="button"
-                      onClick={onConnectGoogle}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#0381FE] text-white text-xs font-semibold hover:bg-blue-600 transition-all shadow-xs"
-                    >
-                      授權登入 Google Drive
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={onManualSync}
-                        disabled={isSyncing}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-slate-900 dark:text-white text-xs font-semibold hover:bg-emerald-700 transition-all"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? '同步中...' : '手動同步'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onDisconnectGoogle}
-                        className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-[#2C2C30] text-slate-500 dark:text-[#A0A0A0] text-xs font-semibold hover:text-slate-900 dark:text-white"
-                      >
-                        中斷
-                      </button>
-                    </>
-                  )}
                 </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onManualSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-slate-900 dark:text-white text-xs font-semibold hover:bg-emerald-700 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? '同步中...' : '手動同步'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onDisconnectGoogle}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-semibold hover:bg-rose-500 hover:text-white transition-all"
+                >
+                  登出並清除資料
+                </button>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Locked Note Password Settings */}
           <div className="space-y-4 p-4 rounded-2xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338]">

@@ -20,6 +20,7 @@ import { Sidebar } from './components/Sidebar';
 import { GalleryHeader } from './components/GalleryHeader';
 import { GalleryView } from './components/GalleryView';
 import { NoteEditorView } from './components/NoteEditorView';
+import { LoginScreen } from './components/LoginScreen';
 import { SettingsModal } from './components/SettingsModal';
 import { ChangelogModal } from './components/ChangelogModal';
 import { PasswordModal } from './components/PasswordModal';
@@ -71,6 +72,7 @@ export default function App() {
   // Settings & OAuth User State
   const [settings, setSyncSettingsState] = useState<SyncSettings>(getSettings());
   const [user, setUser] = useState<GoogleUser | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Status & Modals
   const [isSyncing, setIsSyncing] = useState(false);
@@ -126,7 +128,9 @@ export default function App() {
         }
       }
     }
-    restoreSession();
+    restoreSession().finally(() => {
+      setIsInitializing(false);
+    });
   }, []);
 
   // Update Settings helper
@@ -181,7 +185,7 @@ export default function App() {
       });
     } catch (err) {
       console.error('Failed to sync to Drive:', err);
-    } fontinally: {
+    } finally {
       setIsSyncing(false);
     }
   };
@@ -671,8 +675,25 @@ export default function App() {
 
   const currentCategoryTitle = categoryTitleMap[selectedCategory] || selectedCategory;
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0A0A0B] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[#0381FE]/20 border-t-[#0381FE] rounded-full animate-spin" />
+          <p className="text-sm font-medium text-slate-500 dark:text-[#A0A0A0] animate-pulse">
+            載入專屬空間中...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen onLogin={handleConnectGoogle} />;
+  }
+
   return (
-    <div className="w-screen h-screen bg-transparent text-current font-sans antialiased overflow-hidden flex select-none">
+    <div className={`w-screen h-screen bg-transparent text-current font-sans antialiased overflow-hidden flex select-none ${isDarkMode ? 'dark' : ''}`}>
       {/* VIEW 1: GALLERY HOME VIEW (圖庫主頁) */}
       {currentView === 'gallery' && (
         <div className="w-full h-full flex overflow-hidden relative">
