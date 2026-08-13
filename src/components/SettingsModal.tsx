@@ -161,7 +161,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onClick={onDisconnectGoogle}
                   className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-semibold hover:bg-rose-500 hover:text-white transition-all"
                 >
-                  登出並清除資料
+                  登出
                 </button>
               </div>
             </div>
