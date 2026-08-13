@@ -104,6 +104,31 @@ export default function App() {
     loadData();
   }, [user?.email]);
 
+  // Restore Google Session on mount
+  useEffect(() => {
+    async function restoreSession() {
+      const savedSessionStr = localStorage.getItem('cloudnotes_google_session');
+      if (savedSessionStr) {
+        try {
+          const session = JSON.parse(savedSessionStr);
+          if (session.user && session.expiresAt > Date.now()) {
+            setUser(session.user);
+            await driveService.initClient();
+            driveService.restoreSession(session.user.accessToken);
+            // After restoring, we don't need to manually call sync here, 
+            // because App.tsx will trigger standard usage if settings.mode is already google_drive.
+            // Wait, we DO need to trigger sync to refresh notes if the mode is google_drive.
+          } else {
+            localStorage.removeItem('cloudnotes_google_session');
+          }
+        } catch (err) {
+          console.error('Failed to parse saved session', err);
+        }
+      }
+    }
+    restoreSession();
+  }, []);
+
   // Update Settings helper
   const handleUpdateSettings = (newSettings: SyncSettings) => {
     setSyncSettingsState(newSettings);
@@ -123,6 +148,10 @@ export default function App() {
       const profile = await driveService.getUserProfile(token);
       if (profile) {
         setUser(profile);
+        localStorage.setItem('cloudnotes_google_session', JSON.stringify({
+          user: profile,
+          expiresAt: Date.now() + 3500 * 1000, // almost 1 hour
+        }));
         const newSettings = { ...settings, mode: 'google_drive' as const };
         handleUpdateSettings(newSettings);
         // Pass the updated user and mode explicitly to bypass React state batching delay
@@ -136,6 +165,7 @@ export default function App() {
 
   const handleDisconnectGoogle = async () => {
     setUser(null);
+    localStorage.removeItem('cloudnotes_google_session');
     handleUpdateSettings({ ...settings, mode: 'demo' });
   };
 

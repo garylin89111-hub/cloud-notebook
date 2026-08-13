@@ -93,6 +93,13 @@ export class GoogleDriveService {
     });
   }
 
+  public restoreSession(accessToken: string) {
+    this.accessToken = accessToken;
+    if (window.gapi?.client) {
+      window.gapi.client.setToken({ access_token: accessToken });
+    }
+  }
+
   public async getUserProfile(accessToken: string): Promise<GoogleUser | null> {
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
