@@ -74,6 +74,12 @@ export default function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // Latest notes ref for beforeunload saving
+  const notesRef = useRef<Note[]>([]);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+
   // Status & Modals
   const [isSyncing, setIsSyncing] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'idle'>('saved');
@@ -225,6 +231,17 @@ export default function App() {
 
     return () => clearTimeout(timer);
   }, [notes, settings.mode, settings.isAutoSync, user]);
+
+  // Flush pending changes on page refresh/close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (autoSaveStatus === 'saving') {
+        saveLocalNotes(notesRef.current, user?.email);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [autoSaveStatus, user?.email]);
 
   // Active Note Memo
   const activeNote = useMemo(() => {
