@@ -160,7 +160,11 @@ export async function getLocalNotes(userEmail?: string): Promise<Note[]> {
       return dbNotes;
     }
 
-    // Fallback to localStorage if IndexedDB is empty
+    if (userEmail) {
+      return []; // Return empty array for new cloud user
+    }
+
+    // Fallback to localStorage if IndexedDB is empty AND it's a local user (demo mode)
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
@@ -193,11 +197,15 @@ export async function saveLocalNotes(notes: Note[], userEmail?: string): Promise
     const dbName = userEmail ? `SamsungNotes_PC_DB_${userEmail}` : 'SamsungNotes_PC_DB_local';
     await indexedDBService.init(dbName);
     await indexedDBService.saveAllNotes(notes);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    } catch {
-      // Safely ignore localStorage quota errors (5MB limit) when storing large images/PDF attachments.
-      // IndexedDB handles full persistence cleanly.
+    
+    // Only save to localStorage fallback if it's the local (demo) user
+    if (!userEmail) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      } catch {
+        // Safely ignore localStorage quota errors (5MB limit) when storing large images/PDF attachments.
+        // IndexedDB handles full persistence cleanly.
+      }
     }
   } catch (err) {
     console.error('Failed to save notes:', err);

@@ -33,6 +33,37 @@ import { VoiceRecorder } from './VoiceRecorder';
 
 const DEFAULT_FOLDERS = ['未分類', '工作', '個人', '靈感', '隨記', '待辦事項'];
 
+const renderHybridContent = (content: string, images: ImageAttachment[]) => {
+  if (!content) return null;
+  // Match ![alt](url)
+  const regex = /(!\[.*?\]\(.*?\))/g;
+  const parts = content.split(regex);
+
+  return parts.map((part, index) => {
+    const match = part.match(/!\[(.*?)\]\((.*?)\)/);
+    if (match) {
+      const alt = match[1];
+      const src = match[2];
+      // If src is an image ID, map to dataUrl, else use src (fallback for standard URLs)
+      const imgObj = images.find((img) => img.id === src);
+      const dataUrl = imgObj ? imgObj.dataUrl : src;
+      return (
+        <img
+          key={index}
+          src={dataUrl}
+          alt={alt}
+          className="max-w-full rounded-xl border border-slate-300 dark:border-[#333338] my-4 shadow-sm block"
+        />
+      );
+    }
+    return (
+      <span key={index} className="whitespace-pre-wrap break-words break-all">
+        {part.length > 50000 ? part.substring(0, 50000) + '... (文字過長已截斷，請進入編輯模式刪除)' : part}
+      </span>
+    );
+  });
+};
+
 interface NoteEditorViewProps {
   note: Note;
   onUpdateNote: (updatedNote: Note) => void;
@@ -91,6 +122,9 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   const [newTaskInput, setNewTaskInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [newTaskText, setNewTaskText] = useState('');
+  const [isTodoVisible, setIsTodoVisible] = useState(false);
+  const [previewPdfIds, setPreviewPdfIds] = useState<Set<string>>(new Set());
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   // Paper Canvas & Drawing History
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -598,78 +632,59 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     }
   };
 
-  // Migration effect: extract base64 images embedded in note.content into note.images array
-  useEffect(() => {
-    if (note.content && (note.content.includes('![') || note.content.includes('data:image/'))) {
-      const extractedImages: ImageAttachment[] = [...(note.images || [])];
-      let hasExtracted = false;
-
-      // Match markdown images like ![filename](data:image...)
-      const regex = /!\[(.*?)\]\((data:image\/[a-zA-Z]+;base64,[^\)]+)\)/g;
-      let match;
-      while ((match = regex.exec(note.content)) !== null) {
-        const name = match[1] || 'Inserted Image';
-        const dataUrl = match[2];
-        if (!extractedImages.some((img) => img.dataUrl === dataUrl)) {
-          extractedImages.push({
-            id: 'img-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            name,
-            dataUrl,
-            createdAt: new Date().toISOString(),
-          });
-          hasExtracted = true;
-        }
-      }
-
-      // Also clean orphan ![filename] without valid url or leftover base64 strings
-      const cleanedContent = note.content
-        .replace(/!\[.*?\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/g, '')
-        .replace(/!\[.*?\]/g, '')
-        .replace(/data:image\/[a-zA-Z]+;base64,[^\s]+/g, '')
-        .trim();
-
-      if (hasExtracted || cleanedContent !== note.content) {
-        handleFieldChange({
-          images: extractedImages,
-          content: cleanedContent,
-        });
-      }
-    }
-  }, [note.id]);
-
   // Image Insert Upload Handler
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
+      processImageFile(e.target.files[0]);
+    }
+  };
+
+  const processImageFile = (file: File) => {
+    // Check if it's an image
+    if (!file.type.startsWith('image/')) return;
+    
+    const reader = new FileReader();
       reader.onload = (event) => {
         const imgUrl = event.target?.result as string;
+        const newImgId = 'img-' + Date.now();
         const newImg: ImageAttachment = {
-          id: 'img-' + Date.now(),
+          id: newImgId,
           name: file.name,
           dataUrl: imgUrl,
           createdAt: new Date().toISOString(),
         };
         const updatedImages = [...(note.images || []), newImg];
-        const cleanedContent = note.content
-          .replace(/!\[.*?\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/g, '')
-          .replace(/!\[.*?\]/g, '')
-          .replace(/data:image\/[a-zA-Z]+;base64,[^\s]+/g, '')
-          .trim();
+        
+        let updatedContent = note.content || '';
+        const imageMarkdown = `\n![${file.name}](${newImgId})\n`;
+        const textarea = textareaRef.current;
+        
+        if (textarea) {
+          const startPos = textarea.selectionStart;
+          const endPos = textarea.selectionEnd;
+          updatedContent = updatedContent.substring(0, startPos) + imageMarkdown + updatedContent.substring(endPos);
+        } else {
+          updatedContent += imageMarkdown;
+        }
 
         handleFieldChange({
           images: updatedImages,
-          content: cleanedContent,
+          content: updatedContent,
         });
       };
       reader.readAsDataURL(file);
       setIsInsertMenuOpen(false);
-    }
   };
 
   const handleDeleteImage = (id: string) => {
     if (note.images) {
       handleFieldChange({ images: note.images.filter((img) => img.id !== id) });
+    }
+  };
+
+  const handleDeletePDF = (id: string) => {
+    if (note.pdfAttachments) {
+      handleFieldChange({ pdfAttachments: note.pdfAttachments.filter((pdf) => pdf.id !== id) });
     }
   };
 
@@ -896,7 +911,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
             </div>
           )}
 
-          {/* Export / Share */}
+          {/* Download Text */}
           <button
             type="button"
             onClick={handleExportText}
@@ -950,98 +965,35 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
               ))}
             </div>
 
-            {/* Interactive Checkbox / Todo List Section (Placed at top above content) */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-[#1A1A1D] border border-slate-300 dark:border-[#333338] space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <CheckSquare className="w-4 h-4 text-[#0381FE]" />
-                  <span>待辦事項</span>
-                  <span className="text-[11px] font-normal text-slate-400">
-                    ({(note.tasks || []).filter((t) => t.completed).length}/{(note.tasks || []).length})
-                  </span>
-                </h4>
+            {/* Note Rich Content Textarea / Preview */}
+            {isReadOnly ? (
+              <div className="w-full min-h-[300px] leading-relaxed text-sm md:text-base font-sans text-slate-900 dark:text-white">
+                {renderHybridContent(note.content, note.images || [])}
               </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={note.content}
+                onChange={(e) => handleFieldChange({ content: e.target.value })}
+                onInput={adjustTextareaHeight}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processImageFile(e.dataTransfer.files[0]);
+                  }
+                }}
+                placeholder="開始在此處輸入筆記內文，或使用右側 S-Pen 工具列直接手寫繪圖... 支援 Markdown 圖片語法：![描述](網址)"
+                className="w-full min-h-[300px] bg-transparent focus:outline-none leading-relaxed text-sm md:text-base font-sans resize-none overflow-hidden text-slate-900 dark:text-white placeholder-slate-400 whitespace-pre-wrap break-words break-all"
+              />
+            )}
 
-              {/* Task Items */}
-              {note.tasks && note.tasks.length > 0 ? (
-                <div className="space-y-1.5">
-                  {note.tasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between gap-2 group py-1 border-b border-slate-200 dark:border-[#26262A] last:border-none">
-                      <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer text-slate-200 flex-1 min-w-0">
-                        <input
-                          type="checkbox"
-                          disabled={isReadOnly}
-                          checked={task.completed}
-                          onChange={() => {
-                            const updated = note.tasks.map((t) => (t.id === task.id ? { ...t, completed: !t.completed } : t));
-                            handleFieldChange({ tasks: updated });
-                          }}
-                          className="w-4 h-4 rounded border-[#3A3A42] text-[#0381FE] focus:ring-0 cursor-pointer accent-[#0381FE]"
-                        />
-                        <span className={`truncate text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                          {task.text}
-                        </span>
-                      </label>
-                      {!isReadOnly && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-200 dark:bg-[#2C2C30] transition-colors"
-                          title="刪除待辦事項"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-slate-500 italic py-0.5">
-                  尚無待辦事項，在下方輸入即可新增
-                </div>
-              )}
-
-              {/* Add Task Input Form */}
-              {!isReadOnly && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleAddTask();
-                  }}
-                  className="flex items-center gap-2 pt-1 border-t border-slate-200 dark:border-[#26262A]"
-                >
-                  <input
-                    type="text"
-                    value={newTaskInput}
-                    onChange={(e) => setNewTaskInput(e.target.value)}
-                    placeholder="新增待辦事項... (按 Enter 新增)"
-                    className="flex-1 bg-slate-50 dark:bg-[#121214] border border-slate-300 dark:border-[#333338] rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#0381FE] transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newTaskInput.trim()}
-                    className="px-3 py-1.5 rounded-xl bg-[#0381FE] hover:bg-[#026AD4] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1 transition-colors shrink-0"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>新增</span>
-                  </button>
-                </form>
-              )}
-            </div>
-
-            {/* Note Rich Content Textarea */}
-            <textarea
-              ref={textareaRef}
-              value={note.content}
-              disabled={isReadOnly}
-              onChange={(e) => handleFieldChange({ content: e.target.value })}
-              onInput={adjustTextareaHeight}
-              placeholder="開始在此處輸入筆記內文，或使用右側 S-Pen 工具列直接手寫繪圖..."
-              className="w-full min-h-[300px] bg-transparent focus:outline-none leading-relaxed text-sm md:text-base font-sans resize-none overflow-hidden text-slate-900 dark:text-white placeholder-slate-400 whitespace-pre-wrap break-words break-all"
-            />
-
-            {/* Inserted Images Viewer List */}
-            {note.images && note.images.length > 0 && (
+            {/* Inserted Images Viewer List (Only in Edit mode if we want to clean it up, but let's keep it in Edit Mode) */}
+            {note.images && note.images.length > 0 && !isReadOnly && (
               <div className="space-y-3 pt-4 border-t border-slate-300 dark:border-[#333338]">
                 <h4 className="text-xs font-bold text-[#0381FE] flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4" />
@@ -1079,23 +1031,58 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
 
             {/* PDF Attachments Viewer List */}
             {note.pdfAttachments && note.pdfAttachments.length > 0 && (
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-4 border-t border-slate-300 dark:border-[#333338]">
                 <h4 className="text-xs font-bold text-rose-500 flex items-center gap-1.5">
                   <FileUp className="w-4 h-4" />
                   已附加 PDF 文件 ({note.pdfAttachments.length})
                 </h4>
-                {note.pdfAttachments.map((pdf) => (
-                  <div key={pdf.id} className="p-4 rounded-2xl bg-white dark:bg-[#1A1A1D] border border-slate-300 dark:border-[#333338] flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-200">
-                      <span className="truncate">{pdf.name}</span>
-                      <a href={pdf.dataUrl} download={pdf.name} className="px-3 py-1 rounded-xl bg-rose-500 text-white text-[10px]">
-                        下載 PDF
-                      </a>
+                {note.pdfAttachments.map((pdf) => {
+                  const isPreviewed = previewPdfIds.has(pdf.id);
+                  return (
+                    <div key={pdf.id} className="p-4 rounded-2xl bg-white dark:bg-[#1A1A1D] border border-slate-300 dark:border-[#333338] flex flex-col gap-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+                        <span className="truncate max-w-[200px] sm:max-w-xs">{pdf.name}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSet = new Set(previewPdfIds);
+                              if (isPreviewed) newSet.delete(pdf.id);
+                              else newSet.add(pdf.id);
+                              setPreviewPdfIds(newSet);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-[#2C2C30] hover:bg-slate-300 dark:hover:bg-[#38383F] text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{isPreviewed ? '收起預覽' : '展開預覽'}</span>
+                          </button>
+                          <a href={pdf.dataUrl} download={pdf.name} className="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white transition-colors flex items-center gap-1">
+                            <Download className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">下載</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeletePDF(pdf.id);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-[#2C2C30] hover:bg-rose-500 hover:text-white text-slate-500 dark:text-slate-400 transition-colors"
+                            title="刪除 PDF"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Embedded PDF iframe / viewer (Only show if previewed) */}
+                      {isPreviewed && (
+                        <div className="mt-2 w-full h-[600px] rounded-xl border border-slate-300 dark:border-[#333338] bg-white overflow-hidden animate-in fade-in duration-300">
+                          <iframe src={`${pdf.dataUrl}#toolbar=0`} title={pdf.name} className="w-full h-full" />
+                        </div>
+                      )}
                     </div>
-                    {/* Embedded PDF iframe / viewer */}
-                    <iframe src={pdf.dataUrl} title={pdf.name} className="w-full h-80 rounded-xl border border-slate-300 dark:border-[#333338] bg-white" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -1150,6 +1137,82 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
           canRedo={canRedo}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          todoNode={
+            <div className="flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-slate-500 dark:text-[#A0A0A0] flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-[#0381FE]" />
+                <span>待辦事項</span>
+                <span className="text-[11px] font-normal text-slate-400">
+                  ({(note.tasks || []).filter((t) => t.completed).length}/{(note.tasks || []).length})
+                </span>
+              </h4>
+
+              {/* Task Items */}
+              {note.tasks && note.tasks.length > 0 ? (
+                <div className="space-y-1.5 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                  {note.tasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between gap-2 group py-1 border-b border-slate-200 dark:border-[#26262A] last:border-none">
+                      <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer text-slate-200 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          disabled={isReadOnly}
+                          checked={task.completed}
+                          onChange={() => {
+                            const updated = note.tasks.map((t) => (t.id === task.id ? { ...t, completed: !t.completed } : t));
+                            handleFieldChange({ tasks: updated });
+                          }}
+                          className="w-4 h-4 rounded border-[#3A3A42] text-[#0381FE] focus:ring-0 cursor-pointer accent-[#0381FE]"
+                        />
+                        <span className={`truncate text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                          {task.text}
+                        </span>
+                      </label>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-200 dark:bg-[#2C2C30] transition-colors"
+                          title="刪除待辦事項"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 italic py-2 text-center">
+                  尚無待辦事項
+                </div>
+              )}
+
+              {/* Add Task Input Form */}
+              {!isReadOnly && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddTask();
+                  }}
+                  className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-[#26262A]"
+                >
+                  <input
+                    type="text"
+                    value={newTaskInput}
+                    onChange={(e) => setNewTaskInput(e.target.value)}
+                    placeholder="新增..."
+                    className="flex-1 bg-slate-50 dark:bg-[#121214] border border-slate-300 dark:border-[#333338] rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-[#0381FE] transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newTaskInput.trim()}
+                    className="p-1.5 rounded-xl bg-[#0381FE] hover:bg-[#026AD4] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center justify-center transition-colors shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </form>
+              )}
+            </div>
+          }
           voiceRecorderNode={
             <VoiceRecorder
               recordings={note.audioRecordings}

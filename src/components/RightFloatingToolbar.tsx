@@ -9,6 +9,7 @@ import {
   RotateCw, 
   BoxSelect,
   Mic,
+  CheckSquare,
 } from 'lucide-react';
 import { SPenToolMode } from '../types';
 
@@ -32,6 +33,7 @@ interface RightFloatingToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   voiceRecorderNode?: React.ReactNode;
+  todoNode?: React.ReactNode;
 }
 
 const PRESET_PEN_COLORS = [
@@ -72,10 +74,11 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
   onUndo,
   onRedo,
   voiceRecorderNode,
+  todoNode,
 }) => {
-  const [activePopover, setActivePopover] = useState<'none' | 'pen' | 'highlighter' | 'eraser' | 'mic'>('none');
+  const [activePopover, setActivePopover] = useState<'pen' | 'highlighter' | 'eraser' | 'mic' | 'todo' | 'none'>('none');
 
-  const togglePopover = (target: 'pen' | 'highlighter' | 'eraser' | 'mic') => {
+  const togglePopover = (target: 'pen' | 'highlighter' | 'eraser' | 'mic' | 'todo') => {
     if (activePopover === target) {
       setActivePopover('none');
     } else {
@@ -254,17 +257,31 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
 
       {/* Voice Recorder Popover */}
       {activePopover === 'mic' && voiceRecorderNode && (
-        <div className="absolute right-16 bottom-0 md:top-0 bg-white dark:bg-[#1F1F22] border border-slate-300 dark:border-[#333338] rounded-2xl p-4 shadow-2xl w-80 md:w-96 text-slate-900 dark:text-white z-50 animate-in fade-in duration-150">
-          <div className="text-xs font-bold text-slate-500 dark:text-[#A0A0A0] mb-3 flex items-center justify-between">
-            <span>語音備忘錄</span>
+        <div className="absolute right-16 top-48 bg-white dark:bg-[#1F1F22] border border-slate-300 dark:border-[#333338] rounded-2xl p-4 shadow-2xl w-80 text-slate-900 dark:text-white z-50 animate-in fade-in duration-150">
+          <div className="flex justify-end mb-2">
             <button
               onClick={() => setActivePopover('none')}
-              className="text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white"
+              className="text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white p-1"
             >
               ✕
             </button>
           </div>
           {voiceRecorderNode}
+        </div>
+      )}
+
+      {/* Todo List Popover */}
+      {activePopover === 'todo' && todoNode && (
+        <div className="absolute right-16 top-48 bg-white dark:bg-[#1F1F22] border border-slate-300 dark:border-[#333338] rounded-2xl p-4 shadow-2xl w-80 text-slate-900 dark:text-white z-50 animate-in fade-in duration-150">
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => setActivePopover('none')}
+              className="text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white p-1"
+            >
+              ✕
+            </button>
+          </div>
+          {todoNode}
         </div>
       )}
 
@@ -365,6 +382,22 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
         >
           <Lasso className="w-5 h-5" />
         </button>
+
+        {/* Todo Toggle */}
+        {todoNode && (
+          <button
+            type="button"
+            onClick={() => togglePopover('todo')}
+            className={`p-3 rounded-xl transition-all relative ${
+              activePopover === 'todo'
+                ? 'bg-[#0381FE] text-white shadow-md'
+                : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
+            }`}
+            title="待辦事項清單"
+          >
+            <CheckSquare className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Voice Recorder */}
         <button
