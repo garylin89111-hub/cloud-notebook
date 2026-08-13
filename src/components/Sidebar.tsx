@@ -138,11 +138,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sync Mode Badge Indicator */}
         <div className="p-2">
           <div
-            onClick={user ? onOpenSettings : onConnectGoogle}
-            className={`cursor-pointer rounded-xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338] p-2 hover:bg-slate-200 dark:bg-[#2E2E33] transition-colors ${
+            onClick={user ? undefined : onConnectGoogle}
+            className={`${user ? '' : 'cursor-pointer hover:bg-slate-200 dark:hover:bg-[#2E2E33] transition-colors'} rounded-xl bg-slate-100 dark:bg-[#262629] border border-slate-300 dark:border-[#333338] p-2 ${
               isExpanded ? 'flex items-center gap-2.5' : 'flex justify-center'
             }`}
-            title={user ? `Google Drive: ${user.name}` : 'IndexedDB 本地儲存模式'}
+            title={user ? `Google Drive: ${user.name}` : '點擊登入 Google Drive'}
           >
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${user ? 'bg-[#0381FE]/20 text-[#0381FE]' : 'bg-slate-700/50 text-slate-300'}`}>
               {user ? <CheckCircle2 className="w-4 h-4" /> : <HardDrive className="w-4 h-4" />}
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {user ? user.name : 'IndexedDB 本地模式'}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-[#A0A0A0] truncate">
-                  {user ? 'Google Drive 同步中' : '點擊設定雲端同步'}
+                  {user ? 'Google Drive 同步中' : '點擊登入 Google Drive'}
                 </div>
               </div>
             )}
