@@ -7,7 +7,7 @@ declare global {
   }
 }
 
-const DRIVE_FOLDER_NAME = 'CloudNotes_WebData';
+const DRIVE_FOLDER_NAME = 'CloudNotes_Backup';
 const DATA_FILE_NAME = 'CloudNotes_Data.json';
 
 const GOOGLE_CLIENT_ID = '181448808743-ngni7f8idk0t33s2b5h38sed4ivhfvsu.apps.googleusercontent.com';
