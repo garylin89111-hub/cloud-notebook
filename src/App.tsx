@@ -174,9 +174,16 @@ export default function App() {
   };
 
   const handleDisconnectGoogle = async () => {
+    // 徹底清除當前使用者的本地 IndexedDB 快取
+    await saveLocalNotes([], user?.email);
+    
+    // 清除 Session
     setUser(null);
     localStorage.removeItem('cloudnotes_google_session');
     handleUpdateSettings({ ...settings, mode: 'demo' });
+    
+    // 強制重新載入網頁，徹底重置所有 React State (notes, selections 等)，確保最乾淨的登出狀態
+    window.location.reload();
   };
 
   // Sync to Google Drive
