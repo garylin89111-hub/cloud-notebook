@@ -49,7 +49,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [autoSync, setAutoSync] = useState(settings.isAutoSync);
   const [mode, setMode] = useState<'demo' | 'google_drive'>(settings.mode);
   const [securityPin, setSecurityPin] = useState(settings.securityPin || '000');
-  const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
     setMode(settings.mode);
@@ -64,19 +63,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [pinMessage, setPinMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   if (!isOpen) return null;
-
-  const handleSave = () => {
-    onSaveSettings({
-      googleClientId: '',
-      googleApiKey: '',
-      isAutoSync: autoSync,
-      mode: mode,
-      lastSyncedAt: settings.lastSyncedAt,
-      securityPin: securityPin.trim() || '000',
-    });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2000);
-  };
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,28 +259,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-[#2C2C30] bg-[#171719] flex items-center justify-between">
-          <span className="text-xs text-emerald-400 font-bold">
-            {savedSuccess ? '✓ 設定已成功儲存' : ''}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#0381FE] hover:bg-blue-600 text-white font-bold text-xs shadow-md"
-            >
-              <Check className="w-4 h-4" />
-              儲存變更
-            </button>
           </div>
         </div>
       </div>
