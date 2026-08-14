@@ -155,33 +155,20 @@ export default function App() {
 
   const hasRestoredSessionRef = useRef(false);
 
-  // Restore Google Session on mount (只在開機載入時執行一次，防止無限循環閃爍)
+  // Restore Google Session on mount (0毫秒極速載入本地筆記，Google 雲端同步移至背景非同步執行)
   useEffect(() => {
     if (hasRestoredSessionRef.current) return;
     hasRestoredSessionRef.current = true;
 
     async function restoreSession() {
       const savedSessionStr = localStorage.getItem('cloudnotes_google_session');
+      let sessionUser: GoogleUser | null = null;
       if (savedSessionStr) {
         try {
           const session = JSON.parse(savedSessionStr);
           if (session.user && session.expiresAt > Date.now()) {
+            sessionUser = session.user;
             setUser(session.user);
-            await driveService.initClient();
-            driveService.restoreSession(session.user.accessToken);
-            // 首次開啟時從 Google Drive 抓取一次最新資料
-            setIsSyncing(true);
-            try {
-              const driveNotes = await driveService.fetchNotesFromDrive();
-              if (driveNotes && driveNotes.length > 0) {
-                setNotes(driveNotes);
-                saveLocalNotes(driveNotes, session.user.email);
-              }
-            } catch (e) {
-              console.error('Initial sync error:', e);
-            } finally {
-              setIsSyncing(false);
-            }
           } else {
             localStorage.removeItem('cloudnotes_google_session');
           }
@@ -189,7 +176,29 @@ export default function App() {
           console.error('Failed to parse saved session', err);
         }
       }
+
+      // ⚡ 0 毫秒極速開機：立刻關閉全螢幕載入畫面，讓使用者瞬間進入筆記主頁！
       setIsInitializing(false);
+
+      // ☁️ 雲端背景靜默同步：在背後非同步連線 Google Drive 並檢查最新檔案，絕不卡住畫面
+      if (sessionUser) {
+        (async () => {
+          try {
+            await driveService.initClient();
+            driveService.restoreSession(sessionUser.accessToken);
+            setIsSyncing(true);
+            const driveNotes = await driveService.fetchNotesFromDrive();
+            if (driveNotes && driveNotes.length > 0) {
+              setNotes(driveNotes);
+              saveLocalNotes(driveNotes, sessionUser.email);
+            }
+          } catch (e) {
+            console.error('Background initial sync error:', e);
+          } finally {
+            setIsSyncing(false);
+          }
+        })();
+      }
     }
 
     restoreSession();
