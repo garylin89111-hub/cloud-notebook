@@ -42,3 +42,8 @@
 canvas {
   touch-action: none;
 }
+
+.tiptap p { margin-bottom: 1em; min-height: 1.5em; }
+.tiptap img { border-radius: 0.75rem; border: 1px solid #e2e8f0; margin-top: 1rem; margin-bottom: 1rem; max-width: 100%; height: auto; }
+.dark .tiptap img { border-color: #333338; }
+.tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #94a3b8; pointer-events: none; height: 0; }

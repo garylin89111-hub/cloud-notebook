@@ -30,38 +30,47 @@ import {
 import { Note, SPenToolMode, DrawingData, AudioRecording, PdfAttachment, ImageAttachment, TaskItem } from '../types';
 import { RightFloatingToolbar } from './RightFloatingToolbar';
 import { VoiceRecorder } from './VoiceRecorder';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TiptapImage from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
 
-const DEFAULT_FOLDERS = ['未分類', '工作', '個人', '靈感', '隨記', '待辦事項'];
+const DEFAULT_FOLDERS = ['新筆記', '工作', '個人', '點子', '日記', '待辦事項'];
 
-const renderHybridContent = (content: string, images: ImageAttachment[]) => {
-  if (!content) return null;
-  // Match ![alt](url)
-  const regex = /(!\[.*?\]\(.*?\))/g;
-  const parts = content.split(regex);
-
-  return parts.map((part, index) => {
-    const match = part.match(/!\[(.*?)\]\((.*?)\)/);
-    if (match) {
-      const alt = match[1];
-      const src = match[2];
-      // If src is an image ID, map to dataUrl, else use src (fallback for standard URLs)
-      const imgObj = images.find((img) => img.id === src);
-      const dataUrl = imgObj ? imgObj.dataUrl : src;
-      return (
-        <img
-          key={index}
-          src={dataUrl}
-          alt={alt}
-          className="max-w-full rounded-xl border border-slate-300 dark:border-[#333338] my-4 shadow-sm block"
-        />
-      );
+const cleanHtmlContent = (html: string) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const imgs = div.querySelectorAll('img');
+  imgs.forEach((img) => {
+    const title = img.getAttribute('title');
+    if (title && title.startsWith('img-')) {
+      img.setAttribute('src', title);
     }
-    return (
-      <span key={index} className="whitespace-pre-wrap break-words break-all">
-        {part.length > 50000 ? part.substring(0, 50000) + '... (文字過長已截斷，請進入編輯模式刪除)' : part}
-      </span>
-    );
   });
+  return div.innerHTML;
+};
+
+const prepareHtmlForEditor = (content: string, images: ImageAttachment[]) => {
+  if (!content) return '';
+  let html = content;
+  
+  // 為了向下相容舊版的 Markdown 語法，如果發現 ![alt](img-id) 就轉換成 HTML
+  html = html.replace(/!\[(.*?)\]\((img-[^)]+)\)/g, '<img src="$2" alt="$1" title="$2" />');
+  
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const imgs = div.querySelectorAll('img');
+  imgs.forEach((img) => {
+    const src = img.getAttribute('src');
+    if (src && src.startsWith('img-')) {
+      const imgObj = images.find((i) => i.id === src);
+      if (imgObj) {
+        img.setAttribute('title', src);
+        img.setAttribute('src', imgObj.dataUrl);
+      }
+    }
+  });
+  return div.innerHTML;
 };
 
 interface NoteEditorViewProps {
@@ -134,6 +143,45 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const voiceRecorderRef = useRef<HTMLDivElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  // Initialize Tiptap Editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TiptapImage.configure({ inline: true }),
+      Placeholder.configure({
+        placeholder: '在此輸入筆記內容...',
+      }),
+    ],
+    content: prepareHtmlForEditor(note.content, note.images || []),
+    editable: !isReadOnly,
+    editorProps: {
+      attributes: {
+        class: 'w-full min-h-[300px] bg-transparent focus:outline-none leading-relaxed text-sm md:text-base font-sans overflow-hidden text-slate-900 dark:text-white prose dark:prose-invert max-w-none',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      handleFieldChange({ content: cleanHtmlContent(html) });
+    },
+  });
+
+  // Sync Tiptap read-only state
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!isReadOnly);
+    }
+  }, [isReadOnly, editor]);
+
+  // Handle external content updates (e.g., Undo/Redo, switching notes)
+  useEffect(() => {
+    if (editor && note.content) {
+      const currentHtml = cleanHtmlContent(editor.getHTML());
+      if (note.content !== currentHtml) {
+        editor.commands.setContent(prepareHtmlForEditor(note.content, note.images || []), { emitUpdate: false });
+      }
+    }
+  }, [note.content, note.images, editor]);
 
   // Auto-expand textarea to fit all content on page surface without scrollbar
   const adjustTextareaHeight = useCallback(() => {
@@ -655,22 +703,11 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
         };
         const updatedImages = [...(note.images || []), newImg];
         
-        let updatedContent = note.content || '';
-        const imageMarkdown = `\n![${file.name}](${newImgId})\n`;
-        const textarea = textareaRef.current;
-        
-        if (textarea) {
-          const startPos = textarea.selectionStart;
-          const endPos = textarea.selectionEnd;
-          updatedContent = updatedContent.substring(0, startPos) + imageMarkdown + updatedContent.substring(endPos);
-        } else {
-          updatedContent += imageMarkdown;
-        }
+        handleFieldChange({ images: updatedImages });
 
-        handleFieldChange({
-          images: updatedImages,
-          content: updatedContent,
-        });
+        if (editor) {
+          editor.chain().focus().setImage({ src: imgUrl, alt: file.name, title: newImgId }).run();
+        }
       };
       reader.readAsDataURL(file);
       setIsInsertMenuOpen(false);
@@ -965,32 +1002,22 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
               ))}
             </div>
 
-            {/* Note Rich Content Textarea / Preview */}
-            {isReadOnly ? (
-              <div className="w-full min-h-[300px] leading-relaxed text-sm md:text-base font-sans text-slate-900 dark:text-white">
-                {renderHybridContent(note.content, note.images || [])}
-              </div>
-            ) : (
-              <textarea
-                ref={textareaRef}
-                value={note.content}
-                onChange={(e) => handleFieldChange({ content: e.target.value })}
-                onInput={adjustTextareaHeight}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    processImageFile(e.dataTransfer.files[0]);
-                  }
-                }}
-                placeholder="開始在此處輸入筆記內文，或使用右側 S-Pen 工具列直接手寫繪圖... 支援 Markdown 圖片語法：![描述](網址)"
-                className="w-full min-h-[300px] bg-transparent focus:outline-none leading-relaxed text-sm md:text-base font-sans resize-none overflow-hidden text-slate-900 dark:text-white placeholder-slate-400 whitespace-pre-wrap break-words break-all"
-              />
-            )}
+            {/* Note Rich Content Editor / Preview */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isReadOnly && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  processImageFile(e.dataTransfer.files[0]);
+                }
+              }}
+            >
+              <EditorContent editor={editor} />
+            </div>
 
             {/* Inserted Images Viewer List (Only in Edit mode if we want to clean it up, but let's keep it in Edit Mode) */}
             {note.images && note.images.length > 0 && !isReadOnly && (

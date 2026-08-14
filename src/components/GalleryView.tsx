@@ -231,8 +231,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                   {note.isLocked && <Lock className="w-4 h-4 text-amber-400 shrink-0" />}
 
                   {/* 🖊️ 紫色鋼筆 & 🎙️ 藍色麥克風 (保持原樣，有資料才自動顯示) */}
-                  {hasDrawing && <PenTool className="w-4 h-4 text-purple-400 shrink-0" title="包含手繪" />}
-                  {hasAudio && <Mic className="w-4 h-4 text-blue-400 shrink-0" title="包含錄音" />}
+                  {hasDrawing && <PenTool className="w-4 h-4 text-purple-400 shrink-0" />}
+                  {hasAudio && <Mic className="w-4 h-4 text-blue-400 shrink-0" />}
                   
                   <div className="min-w-0">
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
@@ -265,7 +265,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                           onRestoreNote?.(note.id, e);
                         }}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#0381FE]/20 hover:bg-[#0381FE] text-[#0381FE] hover:text-white transition-colors"
-                        title="還原至原資料夾"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>還原</span>
@@ -394,10 +393,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                     )}
 
                     {/* 🖊️ 紫色鋼筆 (有手繪時顯示) */}
-                    {hasDrawing && <PenTool className={`${isSmallGrid ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-purple-400`} title="包含手繪" />}
+                    {hasDrawing && <PenTool className={`${isSmallGrid ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-purple-400`} />}
 
                     {/* 🎙️ 藍色麥克風 (有錄音時顯示) */}
-                    {hasAudio && <Mic className={`${isSmallGrid ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-blue-400`} title="包含錄音" />}
+                    {hasAudio && <Mic className={`${isSmallGrid ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-blue-400`} />}
                   </div>
                 )}
 
