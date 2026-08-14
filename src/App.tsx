@@ -112,7 +112,48 @@ export default function App() {
     loadData();
   }, [user?.email]);
 
-  // Restore Google Session on mount
+  // Sync to Google Drive
+  const handleSyncToDrive = useCallback(async (latestNotes: Note[], overrideUser = user, overrideMode = settings.mode) => {
+    if (!overrideUser || overrideMode !== 'google_drive') return;
+    setIsSyncing(true);
+    try {
+      await driveService.syncNotesToDrive(latestNotes);
+      setSyncSettingsState((prev) => {
+        const updated = {
+          ...prev,
+          lastSyncedAt: new Date().toISOString(),
+        };
+        saveSettings(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to sync to Drive:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [user, settings.mode]);
+
+  // Sync from Google Drive (下載雲端最新筆記)
+  const handleSyncFromDrive = useCallback(async (overrideUser = user, overrideMode = settings.mode) => {
+    if (!overrideUser || overrideMode !== 'google_drive') return;
+    setIsSyncing(true);
+    try {
+      const driveNotes = await driveService.fetchNotesFromDrive();
+      if (driveNotes && driveNotes.length > 0) {
+        setNotes(driveNotes);
+        saveLocalNotes(driveNotes, overrideUser?.email);
+      } else if (notesRef.current && notesRef.current.length > 0) {
+        // 如果雲端是空的但本地有筆記，才將本地筆記推上雲端
+        await handleSyncToDrive(notesRef.current, overrideUser, overrideMode);
+      }
+    } catch (err) {
+      console.error('Failed to fetch from Drive:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [user, settings.mode, handleSyncToDrive]);
+
+  // Restore Google Session on mount (開機自動還原 Session 並從雲端同步)
   useEffect(() => {
     async function restoreSession() {
       const savedSessionStr = localStorage.getItem('cloudnotes_google_session');
@@ -123,9 +164,8 @@ export default function App() {
             setUser(session.user);
             await driveService.initClient();
             driveService.restoreSession(session.user.accessToken);
-            // After restoring, we don't need to manually call sync here, 
-            // because App.tsx will trigger standard usage if settings.mode is already google_drive.
-            // Wait, we DO need to trigger sync to refresh notes if the mode is google_drive.
+            // 每次打開裝置/重新整理網頁時，自動從 Google Drive 下載最新跨裝置筆記！
+            await handleSyncFromDrive(session.user, 'google_drive');
           } else {
             localStorage.removeItem('cloudnotes_google_session');
           }
@@ -137,7 +177,7 @@ export default function App() {
     restoreSession().finally(() => {
       setIsInitializing(false);
     });
-  }, []);
+  }, [handleSyncFromDrive]);
 
   // Update Settings helper
   const handleUpdateSettings = (newSettings: SyncSettings) => {
@@ -151,7 +191,6 @@ export default function App() {
 
   // Connect Google OAuth
   const handleConnectGoogle = async () => {
-
     try {
       await driveService.initClient();
       const token = await driveService.requestAccessToken();
@@ -164,8 +203,8 @@ export default function App() {
         }));
         const newSettings = { ...settings, mode: 'google_drive' as const };
         handleUpdateSettings(newSettings);
-        // Pass the updated user and mode explicitly to bypass React state batching delay
-        handleSyncFromDrive(profile, 'google_drive');
+        // 登入後立刻從雲端拉取其他裝置建立的筆記
+        await handleSyncFromDrive(profile, 'google_drive');
       }
     } catch (err) {
       console.error('Google Connect Error:', err);
@@ -184,42 +223,6 @@ export default function App() {
     
     // 強制重新載入網頁，徹底重置所有 React State (notes, selections 等)，確保最乾淨的登出狀態
     window.location.reload();
-  };
-
-  // Sync to Google Drive
-  const handleSyncToDrive = async (latestNotes: Note[], overrideUser = user, overrideMode = settings.mode) => {
-    if (!overrideUser || overrideMode !== 'google_drive') return;
-    setIsSyncing(true);
-    try {
-      await driveService.syncNotesToDrive(latestNotes);
-      handleUpdateSettings({
-        ...settings,
-        lastSyncedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error('Failed to sync to Drive:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Sync from Google Drive
-  const handleSyncFromDrive = async (overrideUser = user, overrideMode = settings.mode) => {
-    if (!overrideUser || overrideMode !== 'google_drive') return;
-    setIsSyncing(true);
-    try {
-      const driveNotes = await driveService.fetchNotesFromDrive();
-      if (driveNotes && driveNotes.length > 0) {
-        setNotes(driveNotes);
-        saveLocalNotes(driveNotes, overrideUser?.email);
-      } else {
-        await handleSyncToDrive(notes, overrideUser, overrideMode);
-      }
-    } catch (err) {
-      console.error('Failed to fetch from Drive:', err);
-    } finally {
-      setIsSyncing(false);
-    }
   };
 
   // Debounced Auto-save to IndexedDB (1.5s)
