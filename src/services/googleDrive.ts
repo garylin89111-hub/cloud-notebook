@@ -146,10 +146,11 @@ export class GoogleDriveService {
 
   private async getOrCreateDataFileId(): Promise<string | null> {
     try {
-      // 1. 先全域搜尋是否存在 CloudNotes_Data.json
+      // 1. 全域搜尋最新的 CloudNotes_Data.json (依最後修改時間降冪排列，永遠選取最新的一份)
       const globalSearch = await window.gapi.client.drive.files.list({
         q: `name = '${DATA_FILE_NAME}' and trashed = false`,
-        fields: 'files(id, name, parents)',
+        fields: 'files(id, name, modifiedTime, parents)',
+        orderBy: 'modifiedTime desc',
         spaces: 'drive',
       });
 

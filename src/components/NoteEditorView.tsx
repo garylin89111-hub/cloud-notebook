@@ -37,11 +37,17 @@ import Placeholder from '@tiptap/extension-placeholder';
 
 const DEFAULT_FOLDERS = ['新筆記', '工作', '個人', '點子', '日記', '待辦事項'];
 
-const prepareHtmlForEditor = (content: string, images: ImageAttachment[]) => {
-  if (!content) return '';
+const prepareHtmlForEditor = (content: string, images: ImageAttachment[] = []) => {
+  if (!content) {
+    if (images && images.length > 0) {
+      return images.map((img) => `<p><img src="${img.dataUrl}" alt="${img.name}" /></p>`).join('');
+    }
+    return '';
+  }
+  
   let html = content;
   
-  // 為了向下相容舊版的 Markdown 語法，如果發現 ![alt](img-id) 就轉換成真實圖片
+  // 1. 為了向下相容舊版的 Markdown 語法，如果發現 ![alt](img-id) 就轉換成真實圖片
   html = html.replace(/!\[(.*?)\]\((img-[^)]+)\)/g, (_match, alt, id) => {
     const imgObj = images.find((i) => i.id === id);
     if (imgObj) {
@@ -62,6 +68,17 @@ const prepareHtmlForEditor = (content: string, images: ImageAttachment[]) => {
       }
     }
   });
+
+  // 2. 自動恢復機制：如果有已上傳的圖片附件尚未出現在內文中，自動補回內文最上方
+  const renderedSrcs = new Set(Array.from(div.querySelectorAll('img')).map((img) => img.getAttribute('src')));
+  const missingImages = (images || []).filter(
+    (img) => !renderedSrcs.has(img.dataUrl) && !renderedSrcs.has(img.id)
+  );
+  if (missingImages.length > 0) {
+    const missingHtml = missingImages.map((img) => `<p><img src="${img.dataUrl}" alt="${img.name}" /></p>`).join('');
+    return missingHtml + div.innerHTML;
+  }
+
   return div.innerHTML;
 };
 
@@ -141,7 +158,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      TiptapImage.configure({ inline: true }),
+      TiptapImage.configure({ inline: true, allowBase64: true }),
       Placeholder.configure({
         placeholder: '在此輸入筆記內容...',
       }),
