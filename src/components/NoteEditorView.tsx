@@ -826,7 +826,13 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
-            onClick={onBackToGallery}
+            onClick={() => {
+              if (editor) {
+                const html = editor.getHTML();
+                handleFieldChange({ content: cleanHtmlContent(html) });
+              }
+              onBackToGallery();
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-[#2C2C30] hover:bg-slate-200 dark:bg-[#38383F] text-xs font-bold text-slate-900 dark:text-white transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />

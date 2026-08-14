@@ -112,6 +112,34 @@ export default function App() {
     loadData();
   }, [user?.email]);
 
+// Helper to merge local notes and remote notes by updatedAt timestamp (Never overwrite newer edits with older remote copies)
+const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] => {
+  const map = new Map<string, Note>();
+
+  // Place remote notes in map first
+  remoteNotes.forEach((n) => {
+    map.set(n.id, n);
+  });
+
+  // Compare with local notes
+  localNotes.forEach((local) => {
+    const remote = map.get(local.id);
+    if (!remote) {
+      // Local note does not exist on remote yet -> KEEP LOCAL!
+      map.set(local.id, local);
+    } else {
+      const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+      const remoteTime = new Date(remote.updatedAt || remote.createdAt || 0).getTime();
+      if (localTime >= remoteTime) {
+        // Local note was modified more recently -> KEEP LOCAL!
+        map.set(local.id, local);
+      }
+    }
+  });
+
+  return Array.from(map.values());
+};
+
   // Sync to Google Drive
   const handleSyncToDrive = useCallback(async (latestNotes: Note[], overrideUser = user, overrideMode = settings.mode) => {
     if (!overrideUser || overrideMode !== 'google_drive') return;
@@ -140,8 +168,9 @@ export default function App() {
     try {
       const driveNotes = await driveService.fetchNotesFromDrive();
       if (driveNotes && driveNotes.length > 0) {
-        setNotes(driveNotes);
-        saveLocalNotes(driveNotes, overrideUser?.email);
+        const merged = mergeNotesWithRemote(notesRef.current, driveNotes);
+        setNotes(merged);
+        saveLocalNotes(merged, overrideUser?.email);
       } else if (notesRef.current && notesRef.current.length > 0) {
         // 如果雲端是空的但本地有筆記，才將本地筆記推上雲端
         await handleSyncToDrive(notesRef.current, overrideUser, overrideMode);
@@ -189,8 +218,9 @@ export default function App() {
             setIsSyncing(true);
             const driveNotes = await driveService.fetchNotesFromDrive();
             if (driveNotes && driveNotes.length > 0) {
-              setNotes(driveNotes);
-              saveLocalNotes(driveNotes, sessionUser.email);
+              const merged = mergeNotesWithRemote(notesRef.current, driveNotes);
+              setNotes(merged);
+              saveLocalNotes(merged, sessionUser.email);
             }
           } catch (e) {
             console.error('Background initial sync error:', e);
