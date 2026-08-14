@@ -62,10 +62,12 @@ const prepareHtmlForEditor = (content: string, images: ImageAttachment[]) => {
   const imgs = div.querySelectorAll('img');
   imgs.forEach((img) => {
     const src = img.getAttribute('src');
-    if (src && src.startsWith('img-')) {
-      const imgObj = images.find((i) => i.id === src);
+    const title = img.getAttribute('title');
+    const targetId = (title && title.startsWith('img-')) ? title : (src && src.startsWith('img-') ? src : null);
+    if (targetId) {
+      const imgObj = images.find((i) => i.id === targetId);
       if (imgObj) {
-        img.setAttribute('title', src);
+        img.setAttribute('title', targetId);
         img.setAttribute('src', imgObj.dataUrl);
       }
     }
@@ -218,13 +220,20 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     setCanRedo(historyIndexRef.current < historyStackRef.current.length - 1);
   }, []);
 
+  const noteRef = useRef<Note>(note);
+  useEffect(() => {
+    noteRef.current = note;
+  }, [note]);
+
   // Record text field change (content, title, tasks) with debounced history snapshot
   const handleFieldChange = (fields: Partial<Note>) => {
+    const currentNote = noteRef.current;
     const updated: Note = {
-      ...note,
+      ...currentNote,
       ...fields,
       updatedAt: new Date().toISOString(),
     };
+    noteRef.current = updated;
     onUpdateNote(updated);
 
     if (textDebounceTimerRef.current) {
@@ -749,7 +758,8 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
           dataUrl: imgUrl,
           createdAt: new Date().toISOString(),
         };
-        const updatedImages = [...(note.images || []), newImg];
+        const currentImages = noteRef.current.images || [];
+        const updatedImages = [...currentImages, newImg];
         
         handleFieldChange({ images: updatedImages });
 
