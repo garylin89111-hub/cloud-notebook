@@ -143,6 +143,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const voiceRecorderRef = useRef<HTMLDivElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const lastDrawPointRef = useRef<{ x: number; y: number } | null>(null);
 
   // Initialize Tiptap Editor
   const editor = useEditor({
@@ -556,6 +557,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     setIsDrawing(true);
 
     const { x, y } = getCanvasCoords(e);
+    lastDrawPointRef.current = { x, y };
 
     // If selection eraser OR lasso tool mode
     if ((toolMode === 'eraser' && eraserMode === 'selection') || toolMode === 'lasso') {
@@ -575,7 +577,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
       ctx.lineWidth = eraserWidth;
     } else if (toolMode === 'highlighter') {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = highlighterColor + '60'; // 35% opacity
+      ctx.strokeStyle = highlighterColor + '40'; // ~25% 透明度，確保底下文字清清楚楚
       ctx.lineWidth = highlighterWidth;
     } else {
       ctx.globalCompositeOperation = 'source-over';
@@ -620,11 +622,23 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
       return;
     }
 
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    if (toolMode === 'highlighter') {
+      // 螢光筆採用分段繪製，避免連續 stroke 重疊累積透明度變成不透明
+      if (lastDrawPointRef.current) {
+        ctx.beginPath();
+        ctx.moveTo(lastDrawPointRef.current.x, lastDrawPointRef.current.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        lastDrawPointRef.current = { x, y };
+      }
+    } else {
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
   };
 
   const stopPointerDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    lastDrawPointRef.current = null;
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (canvas) canvas.releasePointerCapture(e.pointerId);
