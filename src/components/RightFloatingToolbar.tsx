@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Keyboard, 
   PenTool, 
@@ -77,6 +77,17 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
   todoNode,
 }) => {
   const [activePopover, setActivePopover] = useState<'pen' | 'highlighter' | 'eraser' | 'mic' | 'todo' | 'none'>('none');
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolbarRef.current && !toolbarRef.current.contains(event.target as Node)) {
+        setActivePopover('none');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const togglePopover = (target: 'pen' | 'highlighter' | 'eraser' | 'mic' | 'todo') => {
     if (activePopover === target) {
@@ -87,7 +98,7 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
   };
 
   return (
-    <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 select-none">
+    <div ref={toolbarRef} className="fixed right-6 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 select-none">
       {/* Pen Options Popover */}
       {activePopover === 'pen' && (
         <div className="absolute right-16 top-10 bg-white dark:bg-[#1F1F22] border border-slate-300 dark:border-[#333338] rounded-2xl p-4 shadow-2xl w-64 text-slate-900 dark:text-white z-50 animate-in fade-in duration-150">
