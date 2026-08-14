@@ -240,8 +240,8 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
                     : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white'
                 }`}
               >
-                <BoxSelect className="w-3.5 h-3.5" />
-                選取刪除
+                <Lasso className="w-3.5 h-3.5" />
+                套索框選
               </button>
             </div>
           </div>
@@ -249,7 +249,7 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
           {/* Eraser Width */}
           {eraserMode === 'stroke' && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#A0A0A0] font-semibold">
+              <div className="flex justify-between text-xs text-slate-500 dark:text-[#A0A0A0]">
                 <span>橡皮擦大小</span>
                 <span>{eraserWidth}px</span>
               </div>
@@ -296,8 +296,8 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
         </div>
       )}
 
-      {/* Main Floating Tool Container */}
-      <div className="bg-white dark:bg-[#1F1F22]/90 backdrop-blur-xl border border-slate-300 dark:border-[#333338] rounded-2xl p-1.5 shadow-2xl flex flex-col items-center gap-1.5 text-slate-900 dark:text-white">
+      {/* Main Right Floating Toolbar Strip */}
+      <div className="bg-white/90 dark:bg-[#1F1F22]/90 backdrop-blur-xl border border-slate-300 dark:border-[#333338] p-1.5 rounded-2xl shadow-2xl flex flex-col gap-1.5 items-center">
         {/* Keyboard / Text Mode */}
         <button
           type="button"
@@ -310,12 +310,12 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
               ? 'bg-[#0381FE] text-white shadow-md'
               : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
           }`}
-          title="文字鍵盤模式 (Text Mode)"
+          title="鍵盤輸入 / 富文本編輯"
         >
           <Keyboard className="w-5 h-5" />
         </button>
 
-        {/* S-Pen / Pen */}
+        {/* S-Pen */}
         <button
           type="button"
           onClick={() => {
@@ -327,7 +327,7 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
               ? 'bg-[#0381FE] text-white shadow-md'
               : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
           }`}
-          title="S-Pen 鋼筆 (點擊調整顏色與粗細)"
+          title="S-Pen 鋼筆 (點擊調整色彩與粗細)"
         >
           <PenTool className="w-5 h-5" />
           <span
@@ -369,29 +369,12 @@ export const RightFloatingToolbar: React.FC<RightFloatingToolbarProps> = ({
               ? 'bg-[#0381FE] text-white shadow-md'
               : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
           }`}
-          title={`橡皮擦 (${eraserMode === 'selection' ? '選取刪除' : '筆觸擦除'}) - 點擊展開設定`}
+          title={`橡皮擦 (${eraserMode === 'selection' ? '套索框選' : '筆觸擦除'}) - 點擊展開設定`}
         >
-          {eraserMode === 'selection' ? <BoxSelect className="w-5 h-5" /> : <Eraser className="w-5 h-5" />}
+          {eraserMode === 'selection' ? <Lasso className="w-5 h-5" /> : <Eraser className="w-5 h-5" />}
           {eraserMode === 'selection' && (
             <span className="w-2 h-2 rounded-full bg-amber-400 absolute bottom-1 right-1 border border-[#1F1F22]" />
           )}
-        </button>
-
-        {/* Lasso */}
-        <button
-          type="button"
-          onClick={() => {
-            onSelectToolMode('lasso');
-            setActivePopover('none');
-          }}
-          className={`p-3 rounded-xl transition-all ${
-            activeToolMode === 'lasso'
-              ? 'bg-[#0381FE] text-white shadow-md'
-              : 'text-slate-500 dark:text-[#A0A0A0] hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-[#2C2C30]'
-          }`}
-          title="套索選擇 (Lasso)"
-        >
-          <Lasso className="w-5 h-5" />
         </button>
 
         {/* Todo Toggle */}
