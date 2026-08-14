@@ -16,7 +16,10 @@ import {
   Share2,
   RotateCcw,
   CheckCircle2,
-  Menu
+  Menu,
+  RefreshCw,
+  CloudOff,
+  CheckCircle
 } from 'lucide-react';
 import { GalleryViewMode } from '../types';
 
@@ -34,6 +37,11 @@ interface GalleryHeaderProps {
   onImportPDF: (file: File) => void;
   isTrashView?: boolean;
   onEmptyTrash?: () => void;
+  // Sync props
+  onSync?: () => void;
+  isSyncing?: boolean;
+  lastSyncedAt?: string | null;
+  isGoogleConnected?: boolean;
   // Selection Mode Props
   selectedCount?: number;
   isAllSelected?: boolean;
@@ -61,6 +69,10 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
   onImportPDF,
   isTrashView,
   onEmptyTrash,
+  onSync,
+  isSyncing = false,
+  lastSyncedAt,
+  isGoogleConnected = false,
   selectedCount = 0,
   isAllSelected = false,
   onClearSelection,
@@ -74,6 +86,12 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isEmptyConfirmOpen, setIsEmptyConfirmOpen] = useState(false);
+
+  const syncLabel = isSyncing
+    ? '同步中...'
+    : lastSyncedAt
+    ? `已同步 ${new Date(lastSyncedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`
+    : '同步';  
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -315,6 +333,26 @@ export const GalleryHeader: React.FC<GalleryHeaderProps> = ({
           </button>
         ) : (
           <>
+            {/* Sync Button — Google Drive 同步 */}
+            {isGoogleConnected && onSync && (
+              <button
+                type="button"
+                onClick={onSync}
+                disabled={isSyncing}
+                className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-[#1F1F22] hover:bg-slate-100 dark:hover:bg-[#2A2A2E] border border-slate-200 dark:border-[#2C2C30] text-xs font-bold text-slate-600 dark:text-[#A0A0A0] hover:text-slate-900 dark:hover:text-white transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                title={syncLabel}
+              >
+                {isSyncing ? (
+                  <RefreshCw className="w-4 h-4 text-[#0381FE] animate-spin" />
+                ) : lastSyncedAt ? (
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <CloudOff className="w-4 h-4 text-slate-400" />
+                )}
+                <span className="hidden lg:inline max-w-[90px] truncate">{syncLabel}</span>
+              </button>
+            )}
+
             {/* Import PDF Button (匯入 PDF) */}
             <button
               type="button"

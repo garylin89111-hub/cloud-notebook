@@ -175,6 +175,12 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
         // 如果雲端是空的但本地有筆記，才將本地筆記推上雲端
         await handleSyncToDrive(notesRef.current, overrideUser, overrideMode);
       }
+      // 更新最後同步時間
+      setSyncSettingsState((prev) => {
+        const updated = { ...prev, lastSyncedAt: new Date().toISOString() };
+        saveSettings(updated);
+        return updated;
+      });
     } catch (err) {
       console.error('Failed to fetch from Drive:', err);
     } finally {
@@ -184,7 +190,8 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
 
   const hasRestoredSessionRef = useRef(false);
 
-  // Restore Google Session on mount (0毫秒極速載入本地筆記，Google 雲端同步移至背景非同步執行)
+  // Restore Google Session on mount
+  // 流程：讀取 Session -> 立刻載入 IndexedDB 本地筆記 -> 關閉載入畫面 -> 背景拉取 Drive 並 merge
   useEffect(() => {
     if (hasRestoredSessionRef.current) return;
     hasRestoredSessionRef.current = true;
@@ -192,6 +199,7 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
     async function restoreSession() {
       const savedSessionStr = localStorage.getItem('cloudnotes_google_session');
       let sessionUser: GoogleUser | null = null;
+
       if (savedSessionStr) {
         try {
           const session = JSON.parse(savedSessionStr);
@@ -206,10 +214,24 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
         }
       }
 
-      // ⚡ 0 毫秒極速開機：立刻關閉全螢幕載入畫面，讓使用者瞬間進入筆記主頁！
+      // ⚡ 步驟一：先從 IndexedDB 載入本地筆記（必須在關閉載入畫面之前完成）
+      if (sessionUser) {
+        try {
+          const { getLocalNotes: loadNotes } = await import('./services/storage');
+          const localNotes = await loadNotes(sessionUser.email);
+          if (localNotes && localNotes.length > 0) {
+            setNotes(localNotes);
+            notesRef.current = localNotes;
+          }
+        } catch (e) {
+          console.error('Failed to load local notes on mount:', e);
+        }
+      }
+
+      // ⚡ 步驟二：立刻關閉全螢幕載入畫面，讓使用者瞬間看到本地筆記
       setIsInitializing(false);
 
-      // ☁️ 雲端背景靜默同步：在背後非同步連線 Google Drive 並檢查最新檔案，絕不卡住畫面
+      // ☁️ 步驟三：背景靜默連線 Google Drive，拉取最新資料後 merge
       if (sessionUser) {
         (async () => {
           try {
@@ -218,9 +240,13 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
             setIsSyncing(true);
             const driveNotes = await driveService.fetchNotesFromDrive();
             if (driveNotes && driveNotes.length > 0) {
+              // 此時 notesRef.current 已包含本地資料，merge 才正確
               const merged = mergeNotesWithRemote(notesRef.current, driveNotes);
               setNotes(merged);
               saveLocalNotes(merged, sessionUser.email);
+            } else if (notesRef.current.length > 0) {
+              // Drive 是空的，把本機資料推上去
+              await driveService.syncNotesToDrive(notesRef.current);
             }
           } catch (e) {
             console.error('Background initial sync error:', e);
@@ -871,6 +897,10 @@ const mergeNotesWithRemote = (localNotes: Note[], remoteNotes: Note[]): Note[] =
               onImportPDF={handleImportPDF}
               isTrashView={selectedCategory === 'trash'}
               onEmptyTrash={handleEmptyTrash}
+              onSync={handleSyncFromDrive}
+              isSyncing={isSyncing}
+              lastSyncedAt={settings.lastSyncedAt}
+              isGoogleConnected={settings.mode === 'google_drive' && !!user}
               selectedCount={selectedNoteIds.length}
               isAllSelected={
                 filteredNotes.length > 0 && selectedNoteIds.length === filteredNotes.length

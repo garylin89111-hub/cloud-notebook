@@ -120,43 +120,49 @@ export class GoogleDriveService {
   }
 
   private async getOrCreateAppFolder(): Promise<string> {
-    const res = await window.gapi.client.drive.files.list({
-      q: `mimeType = 'application/vnd.google-apps.folder' and name = '${DRIVE_FOLDER_NAME}' and trashed = false`,
-      fields: 'files(id, name)',
-      spaces: 'drive',
-    });
-
-    const files = res.result.files;
-    if (files && files.length > 0) {
-      return files[0].id;
+    try {
+      const q = encodeURIComponent(`mimeType = 'application/vnd.google-apps.folder' and name = '${DRIVE_FOLDER_NAME}' and trashed = false`);
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&spaces=drive`, {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && data.files.length > 0) {
+          return data.files[0].id;
+        }
+      }
+    } catch (e) {
+      console.error('Error finding app folder:', e);
     }
 
-    // Create folder
-    const createRes = await window.gapi.client.drive.files.create({
-      resource: {
+    // Create folder via REST API
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         name: DRIVE_FOLDER_NAME,
         mimeType: 'application/vnd.google-apps.folder',
-        parents: ['root'],
-      },
-      fields: 'id',
+      }),
     });
-
-    return createRes.result.id;
+    const folderData = await createRes.json();
+    return folderData.id;
   }
 
   private async getOrCreateDataFileId(): Promise<string | null> {
     try {
       // 1. 全域搜尋最新的 CloudNotes_Data.json (依最後修改時間降冪排列，永遠選取最新的一份)
-      const globalSearch = await window.gapi.client.drive.files.list({
-        q: `name = '${DATA_FILE_NAME}' and trashed = false`,
-        fields: 'files(id, name, modifiedTime, parents)',
-        orderBy: 'modifiedTime desc',
-        spaces: 'drive',
+      const q = encodeURIComponent(`name = '${DATA_FILE_NAME}' and trashed = false`);
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&spaces=drive`, {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
       });
-
-      const files = globalSearch.result.files;
-      if (files && files.length > 0) {
-        return files[0].id;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && data.files.length > 0) {
+          return data.files[0].id;
+        }
       }
       return null;
     } catch (e) {
@@ -166,8 +172,8 @@ export class GoogleDriveService {
   }
 
   public async syncNotesToDrive(notes: Note[]): Promise<boolean> {
-    if (!this.accessToken || !window.gapi?.client?.drive) {
-      throw new Error('Google Drive API 未連接或權限尚未授權');
+    if (!this.accessToken) {
+      throw new Error('Google Drive 尚未授權');
     }
 
     try {
@@ -217,7 +223,7 @@ export class GoogleDriveService {
   }
 
   public async fetchNotesFromDrive(): Promise<Note[] | null> {
-    if (!this.accessToken || !window.gapi?.client?.drive) {
+    if (!this.accessToken) {
       return null;
     }
 
