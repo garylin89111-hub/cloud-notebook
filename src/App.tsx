@@ -153,8 +153,13 @@ export default function App() {
     }
   }, [user, settings.mode, handleSyncToDrive]);
 
-  // Restore Google Session on mount (開機自動還原 Session 並從雲端同步)
+  const hasRestoredSessionRef = useRef(false);
+
+  // Restore Google Session on mount (只在開機載入時執行一次，防止無限循環閃爍)
   useEffect(() => {
+    if (hasRestoredSessionRef.current) return;
+    hasRestoredSessionRef.current = true;
+
     async function restoreSession() {
       const savedSessionStr = localStorage.getItem('cloudnotes_google_session');
       if (savedSessionStr) {
@@ -164,8 +169,19 @@ export default function App() {
             setUser(session.user);
             await driveService.initClient();
             driveService.restoreSession(session.user.accessToken);
-            // 每次打開裝置/重新整理網頁時，自動從 Google Drive 下載最新跨裝置筆記！
-            await handleSyncFromDrive(session.user, 'google_drive');
+            // 首次開啟時從 Google Drive 抓取一次最新資料
+            setIsSyncing(true);
+            try {
+              const driveNotes = await driveService.fetchNotesFromDrive();
+              if (driveNotes && driveNotes.length > 0) {
+                setNotes(driveNotes);
+                saveLocalNotes(driveNotes, session.user.email);
+              }
+            } catch (e) {
+              console.error('Initial sync error:', e);
+            } finally {
+              setIsSyncing(false);
+            }
           } else {
             localStorage.removeItem('cloudnotes_google_session');
           }
@@ -173,11 +189,11 @@ export default function App() {
           console.error('Failed to parse saved session', err);
         }
       }
-    }
-    restoreSession().finally(() => {
       setIsInitializing(false);
-    });
-  }, [handleSyncFromDrive]);
+    }
+
+    restoreSession();
+  }, []);
 
   // Update Settings helper
   const handleUpdateSettings = (newSettings: SyncSettings) => {
