@@ -144,32 +144,44 @@ export class GoogleDriveService {
     return createRes.result.id;
   }
 
+  private async getOrCreateDataFileId(): Promise<string | null> {
+    try {
+      // 1. 先全域搜尋是否存在 CloudNotes_Data.json
+      const globalSearch = await window.gapi.client.drive.files.list({
+        q: `name = '${DATA_FILE_NAME}' and trashed = false`,
+        fields: 'files(id, name, parents)',
+        spaces: 'drive',
+      });
+
+      const files = globalSearch.result.files;
+      if (files && files.length > 0) {
+        return files[0].id;
+      }
+      return null;
+    } catch (e) {
+      console.error('Error finding data file:', e);
+      return null;
+    }
+  }
+
   public async syncNotesToDrive(notes: Note[]): Promise<boolean> {
     if (!this.accessToken || !window.gapi?.client?.drive) {
       throw new Error('Google Drive API 未連接或權限尚未授權');
     }
 
     try {
+      const existingFileId = await this.getOrCreateDataFileId();
       const folderId = await this.getOrCreateAppFolder();
 
-      // Check if CloudNotes_Data.json exists inside the folder
-      const fileListRes = await window.gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and name = '${DATA_FILE_NAME}' and trashed = false`,
-        fields: 'files(id, name)',
-        spaces: 'drive',
-      });
-
-      const existingFiles = fileListRes.result.files;
       const fileContent = JSON.stringify({
         version: '1.0.0',
         lastUpdated: new Date().toISOString(),
         notes,
       }, null, 2);
 
-      if (existingFiles && existingFiles.length > 0) {
-        // Update existing file
-        const fileId = existingFiles[0].id;
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      if (existingFileId) {
+        // 更新既有的雲端同步檔
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`, {
           method: 'PATCH',
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
@@ -178,7 +190,7 @@ export class GoogleDriveService {
           body: fileContent,
         });
       } else {
-        // Create new file
+        // 首次建立新檔案
         const metadata = {
           name: DATA_FILE_NAME,
           mimeType: 'application/json',
@@ -209,19 +221,11 @@ export class GoogleDriveService {
     }
 
     try {
-      const folderId = await this.getOrCreateAppFolder();
-      const fileListRes = await window.gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and name = '${DATA_FILE_NAME}' and trashed = false`,
-        fields: 'files(id, name)',
-        spaces: 'drive',
-      });
-
-      const existingFiles = fileListRes.result.files;
-      if (!existingFiles || existingFiles.length === 0) {
+      const fileId = await this.getOrCreateDataFileId();
+      if (!fileId) {
         return null;
       }
 
-      const fileId = existingFiles[0].id;
       const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: { Authorization: `Bearer ${this.accessToken}` },
       });

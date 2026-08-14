@@ -37,37 +37,27 @@ import Placeholder from '@tiptap/extension-placeholder';
 
 const DEFAULT_FOLDERS = ['新筆記', '工作', '個人', '點子', '日記', '待辦事項'];
 
-const cleanHtmlContent = (html: string) => {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  const imgs = div.querySelectorAll('img');
-  imgs.forEach((img) => {
-    const title = img.getAttribute('title');
-    if (title && title.startsWith('img-')) {
-      img.setAttribute('src', title);
-    }
-  });
-  return div.innerHTML;
-};
-
 const prepareHtmlForEditor = (content: string, images: ImageAttachment[]) => {
   if (!content) return '';
   let html = content;
   
-  // 為了向下相容舊版的 Markdown 語法，如果發現 ![alt](img-id) 就轉換成 HTML
-  html = html.replace(/!\[(.*?)\]\((img-[^)]+)\)/g, '<img src="$2" alt="$1" title="$2" />');
+  // 為了向下相容舊版的 Markdown 語法，如果發現 ![alt](img-id) 就轉換成真實圖片
+  html = html.replace(/!\[(.*?)\]\((img-[^)]+)\)/g, (_match, alt, id) => {
+    const imgObj = images.find((i) => i.id === id);
+    if (imgObj) {
+      return `<img src="${imgObj.dataUrl}" alt="${alt}" />`;
+    }
+    return '';
+  });
   
   const div = document.createElement('div');
   div.innerHTML = html;
   const imgs = div.querySelectorAll('img');
   imgs.forEach((img) => {
     const src = img.getAttribute('src');
-    const title = img.getAttribute('title');
-    const targetId = (title && title.startsWith('img-')) ? title : (src && src.startsWith('img-') ? src : null);
-    if (targetId) {
-      const imgObj = images.find((i) => i.id === targetId);
+    if (src && src.startsWith('img-')) {
+      const imgObj = images.find((i) => i.id === src);
       if (imgObj) {
-        img.setAttribute('title', targetId);
         img.setAttribute('src', imgObj.dataUrl);
       }
     }
@@ -165,7 +155,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      handleFieldChange({ content: cleanHtmlContent(html) });
+      handleFieldChange({ content: html });
     },
   });
 
@@ -176,15 +166,12 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     }
   }, [isReadOnly, editor]);
 
-  // Handle external content updates (e.g., Undo/Redo, switching notes)
+  // Handle switching between different notes cleanly
   useEffect(() => {
     if (editor && note.content) {
-      const currentHtml = cleanHtmlContent(editor.getHTML());
-      if (note.content !== currentHtml) {
-        editor.commands.setContent(prepareHtmlForEditor(note.content, note.images || []), { emitUpdate: false });
-      }
+      editor.commands.setContent(prepareHtmlForEditor(note.content, note.images || []), { emitUpdate: false });
     }
-  }, [note.content, note.images, editor]);
+  }, [note.id]);
 
   // Auto-expand textarea to fit all content on page surface without scrollbar
   const adjustTextareaHeight = useCallback(() => {
@@ -829,7 +816,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
             onClick={() => {
               if (editor) {
                 const html = editor.getHTML();
-                handleFieldChange({ content: cleanHtmlContent(html) });
+                handleFieldChange({ content: html });
               }
               onBackToGallery();
             }}
