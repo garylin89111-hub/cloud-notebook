@@ -143,7 +143,7 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const voiceRecorderRef = useRef<HTMLDivElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const lastDrawPointRef = useRef<{ x: number; y: number } | null>(null);
+  const tempCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Initialize Tiptap Editor
   const editor = useEditor({
@@ -557,13 +557,33 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     setIsDrawing(true);
 
     const { x, y } = getCanvasCoords(e);
-    lastDrawPointRef.current = { x, y };
 
     // If selection eraser OR lasso tool mode
     if ((toolMode === 'eraser' && eraserMode === 'selection') || toolMode === 'lasso') {
       canvasSnapshotRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
       setSelectionStart({ x, y });
       setSelectionCurrent({ x, y });
+      return;
+    }
+
+    // 螢光筆模式：使用離屏畫布繪製 100% 實心筆跡，避免重疊加深；再以統一固定透明度投影到主畫布
+    if (toolMode === 'highlighter') {
+      canvasSnapshotRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (!tempCanvasRef.current) {
+        tempCanvasRef.current = document.createElement('canvas');
+      }
+      tempCanvasRef.current.width = canvas.width;
+      tempCanvasRef.current.height = canvas.height;
+      const tempCtx = tempCanvasRef.current.getContext('2d');
+      if (tempCtx) {
+        tempCtx.clearRect(0, 0, canvas.width, canvas.height);
+        tempCtx.beginPath();
+        tempCtx.moveTo(x, y);
+        tempCtx.lineCap = 'round';
+        tempCtx.lineJoin = 'round';
+        tempCtx.strokeStyle = highlighterColor; // 離屏使用 100% 實心顏色，重疊處自動完美融為一體！
+        tempCtx.lineWidth = highlighterWidth;
+      }
       return;
     }
 
@@ -575,10 +595,6 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     if (toolMode === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.lineWidth = eraserWidth;
-    } else if (toolMode === 'highlighter') {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = highlighterColor + '40'; // ~25% 透明度，確保底下文字清清楚楚
-      ctx.lineWidth = highlighterWidth;
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = penColor;
@@ -623,22 +639,30 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     }
 
     if (toolMode === 'highlighter') {
-      // 螢光筆採用分段繪製，避免連續 stroke 重疊累積透明度變成不透明
-      if (lastDrawPointRef.current) {
-        ctx.beginPath();
-        ctx.moveTo(lastDrawPointRef.current.x, lastDrawPointRef.current.y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        lastDrawPointRef.current = { x, y };
-      }
-    } else {
-      ctx.lineTo(x, y);
-      ctx.stroke();
+      if (!tempCanvasRef.current || !canvasSnapshotRef.current) return;
+      const tempCtx = tempCanvasRef.current.getContext('2d');
+      if (!tempCtx) return;
+
+      // 在離屏畫布上繪製連續實心線段
+      tempCtx.lineTo(x, y);
+      tempCtx.stroke();
+
+      // 先把主畫布還原回繪製前的乾淨狀態
+      ctx.putImageData(canvasSnapshotRef.current, 0, 0);
+
+      // 以統一 30% 透明度整塊貼回主畫布，保證整條筆跡完全均勻透明、絕對不重疊變深
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.drawImage(tempCanvasRef.current, 0, 0);
+      ctx.restore();
+      return;
     }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
   };
 
   const stopPointerDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    lastDrawPointRef.current = null;
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (canvas) canvas.releasePointerCapture(e.pointerId);
@@ -647,7 +671,17 @@ export const NoteEditorView: React.FC<NoteEditorViewProps> = ({
     if (canvas) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        if ((toolMode === 'eraser' && eraserMode === 'selection') || toolMode === 'lasso') {
+        if (toolMode === 'highlighter') {
+          if (tempCanvasRef.current && canvasSnapshotRef.current) {
+            // 結束時固化均勻半透明筆跡
+            ctx.putImageData(canvasSnapshotRef.current, 0, 0);
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.drawImage(tempCanvasRef.current, 0, 0);
+            ctx.restore();
+          }
+          canvasSnapshotRef.current = null;
+        } else if ((toolMode === 'eraser' && eraserMode === 'selection') || toolMode === 'lasso') {
           if (canvasSnapshotRef.current && selectionStart && selectionCurrent) {
             // First restore clean canvas without dashed preview
             ctx.putImageData(canvasSnapshotRef.current, 0, 0);
